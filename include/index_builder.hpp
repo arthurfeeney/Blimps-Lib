@@ -16,7 +16,7 @@
  * Contains operations for "index-building" 
  * for nr-lsh. 
  *
- * Needs to be refactored.
+ * Needs to be refactored, badly.
  */
 
 
@@ -33,8 +33,8 @@ auto max_norm(const VectCont& data,
     using Scalar = typename VectCont::value_type::value_type;
 
     Scalar max = -1;
-    for(int64_t i = 0; i < partition.size(); ++i) {
-        Scalar norm = data[partition[i]].norm();
+    for(size_t i = 0; i < partition.size(); ++i) {
+        Scalar norm = data.at(partition.at(i)).norm();
         if(norm > max) {
             max = norm;
         }   
@@ -52,13 +52,13 @@ auto partitioner(const VectCont& dataset, int64_t m)
      * :dataset: some matrix datset.
      * :m: the number of sub-datasets to partition.
      */
+
+    using VectComponent = typename VectCont::value_type::value_type;
     
-    Eigen::Index dimension = dataset[0].rows();
+    std::vector<VectComponent> norms(dataset.size()); 
 
-    std::vector<typename VectCont::value_type::value_type> norms(dataset.size()); 
-
-    for(int64_t i = 0; i < dataset.size(); ++i) {
-        norms[i] = dataset[i].norm();
+    for(size_t i = 0; i < dataset.size(); ++i) {
+        norms.at(i) = dataset.at(i).norm();
     }
 
     std::vector<int64_t> ranking(dataset.size());
@@ -67,13 +67,13 @@ auto partitioner(const VectCont& dataset, int64_t m)
     std::sort(ranking.begin(), 
               ranking.end(),
               [&](int64_t x, int64_t y) {
-                return norms[x] < norms[y];
+                return norms.at(x) < norms.at(y);
               });
 
     std::vector<std::vector<int64_t>> partitions(m, std::vector<int64_t>(0));
 
     int64_t current_partition = 0;
-    for(int64_t i = 0; i < dataset.size(); ++i) {
+    for(size_t i = 0; i < dataset.size(); ++i) {
         if(i != 0 && (i % (dataset.size() / m) == 0)) 
         {
             ++current_partition;
@@ -104,19 +104,19 @@ normalizer(const VectCont& dataset,
     
     std::vector<typename T::value_type> U(partitions.size());
     
-    for(int64_t p = 0; p < partitions.size(); ++p) {
-        normalized_dataset[p] = std::vector<T>(partitions[p].size());
+    for(size_t p = 0; p < partitions.size(); ++p) {
+        normalized_dataset.at(p) = std::vector<T>(partitions.at(p).size());
     }
 
-    for(int64_t p = 0; p < partitions.size(); ++p) {
+    for(size_t p = 0; p < partitions.size(); ++p) {
 
-        auto Up = max_norm(dataset, partitions[p]); 
+        auto Up = max_norm(dataset, partitions.at(p)); 
         
-        U[p] = Up; // tables store the normalizer, so it can be undone after querying
+        U.at(p) = Up; // tables store the normalizer, so it can be undone after querying
         
-        for(int64_t i = 0; i < partitions[p].size(); ++i) {
-            auto normalized = dataset[partitions[p][i]] / Up;
-            normalized_dataset[p][i] = normalized;//.push_back(normalized); 
+        for(size_t i = 0; i < partitions.at(p).size(); ++i) {
+            auto normalized = dataset.at(partitions.at(p).at(i)) / Up;
+            normalized_dataset.at(p).at(i) = normalized;//.push_back(normalized); 
         }
     }
     return std::make_pair(normalized_dataset, U);
@@ -129,18 +129,18 @@ auto simple_LSH_partitions(const PartCont& partitioned_dataset,
 {
     //SimpleLSH hash(bits, partitioned_dataset[0][0].rows());
     
-    int m = partitioned_dataset.size();
+    size_t m = partitioned_dataset.size();
 
     std::vector<std::vector<int64_t>> indices(m, std::vector<int64_t>(0));
 
-    for(int64_t i = 0; i < m; ++i) {
-        indices[i] = std::vector<int64_t>(partitioned_dataset[i].size());
+    for(size_t i = 0; i < m; ++i) {
+        indices.at(i) = std::vector<int64_t>(partitioned_dataset.at(i).size());
     }
     
-    for(int64_t j = 0; j < partitioned_dataset.size(); ++j) {
-        for(int64_t p_idx = 0; p_idx < partitioned_dataset[j].size(); ++p_idx) 
+    for(size_t j = 0; j < partitioned_dataset.size(); ++j) {
+        for(size_t p_idx = 0; p_idx < partitioned_dataset.at(j).size(); ++p_idx) 
         {
-            indices[j][p_idx] = hash(partitioned_dataset[j][p_idx]);
+            indices.at(j).at(p_idx) = hash(partitioned_dataset.at(j).at(p_idx));
         }
     }
     return indices;

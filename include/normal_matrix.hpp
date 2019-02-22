@@ -4,6 +4,11 @@
 
 #include <random>
 
+/*
+ * fills an Eigen matrix with random values from normal distribution.
+ * Eigen seems to only support uniform random.
+ */
+
 class NormalMatrix {
 private:
     std::random_device rd;

@@ -11,7 +11,7 @@ def main():
     num_movies = 65133
     num_reviewers = 71567 
 
-    ratings_file = open('ml-10m/ml-10M100K/ratings.dat', 'r+')
+    ratings_file = open('ml-10m/ml-10M100K/ratings.dat', 'r')
 
     ratings_line = ratings_file.readlines()
 
@@ -27,23 +27,30 @@ def main():
 
     u, s, vt = svds(review_matrix_csr, k=150)
 
-    n = nr.MultiTable(30, 32, 16, 150)
+    #n = nr.MultiTable(30, 32, 16, 150)
+    n = nr.MultiProbe(64, 56, 150, 500) 
 
     n.fill(vt.transpose())
 
+    n.stats()
+
     user = u[1]
 
-    success, (q, index) = n.MIPS(user)
+    success, (q, index) = n.probe(user, 75)
 
+    print(success)
     print(q)
 
-    movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r+')
+    movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
     movies_line = movies_file.readlines()
     movies = [line.split('::') for line in movies_line]
 
     print(movies[index])
     print(q.dot(user))
 
+    print(q.dot(vt.transpose()[index]))
+    print(q.dot(vt.transpose()[0]))
+    
 
 if __name__ == "__main__":
     main()

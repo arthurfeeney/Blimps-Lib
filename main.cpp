@@ -10,6 +10,7 @@
 #include "include/tables.hpp"
 #include "include/table.hpp"
 #include "include/NR_multitable.hpp"
+#include "include/NR_multiprobe.hpp"
 
 /*
  * Contains "experimental" tests.
@@ -23,21 +24,23 @@ int main() {
     std::vector<Eigen::VectorXd> data(1000000);
     int64_t i = 0;
     for(auto& vect : data) {
-        vect = Eigen::VectorXd::Random(20);
+        vect = Eigen::VectorXd::Random(50);
         ++i;
     }
 
-    NR_MultiTable<Eigen::VectorXd> nr(5, 32, 16, 20);
+    //NR_MultiTable<Eigen::VectorXd> nr(5, 32, 16, 20);
+    NR_MultiProbe<Eigen::VectorXd> nr(64, 60, 50, 50000);
 
     nr.fill(data);
 
-    Eigen::VectorXd qnn = Eigen::VectorXd::Random(20);
+    Eigen::VectorXd qnn = Eigen::VectorXd::Random(50);
     auto q = qnn / qnn.norm();
 
 
     using namespace std::chrono;
     auto start = high_resolution_clock::now();
-    auto p = nr.MIPS(q);//.query(q / q.norm(), .5);
+    //auto p = nr.MIPS(q);//.query(q / q.norm(), .5);
+    auto p = nr.probe(q, 500);
     auto end = high_resolution_clock::now();
 
     auto duration = duration_cast<milliseconds>(end - start);
@@ -47,11 +50,11 @@ int main() {
     if(p.first) {
         auto t = p.second;
 
-        std::cout << q.dot(t.first) << '\n';
+        std::cout << "Inner found " << q.dot(t.first) << '\n';
         std::cout << t.second << '\n';
 
-        std::cout << t.first;
-        std::cout << data[t.second];
+        //std::cout << t.first;
+        //std::cout << data[t.second];
 
     }
     else {
@@ -71,7 +74,7 @@ int main() {
         ++rov;
     }
 
-    std::cout << big_dot << '\n';
+    std::cout << "real max: " << big_dot << '\n';
     std::cout << id;
 
     return 0;

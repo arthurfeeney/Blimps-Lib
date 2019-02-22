@@ -28,11 +28,11 @@ public:
            int64_t num_partitions, 
            int64_t bits, 
            int64_t dim):
-        nr_tables(num_tables, Tables<Vect>(0,0,0))//num_partitions,
+        nr_tables(num_tables, Tables<Vect>())//num_partitions,
                                            //bits, dim))
     {
         for(auto& t : nr_tables) {
-            t = Tables<Vect>(num_partitions, bits, dim);
+            t = Tables<Vect>(num_partitions, bits, dim, std::pow(2, bits));
         }
     }
 
@@ -59,7 +59,7 @@ public:
         double big_dot = q.dot(x[0].first);
         KV max = x[0];
 
-        for(int i = 1; i < x.size(); ++i) {
+        for(size_t i = 1; i < x.size(); ++i) {
             double dot = q.dot(x[i].first);
             if(dot > big_dot) {
                 big_dot = dot;
@@ -68,5 +68,4 @@ public:
         }
         return std::make_pair(true, max);
     } 
-
 };
