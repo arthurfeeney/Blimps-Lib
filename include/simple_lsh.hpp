@@ -11,6 +11,8 @@
  * SimpleLSH family.
  */
 
+namespace nr {
+
 class SimpleLSH {
 private:
     Eigen::MatrixXd a;
@@ -30,6 +32,11 @@ public:
         nm.fill_matrix(a); 
 
         fill_bit_mask();
+
+        std::cout << a << '\n';
+
+        std::cout << bit_mask << ' ';
+        std::cout << '\n';
     }
 
     int64_t bit_count() const {
@@ -73,3 +80,5 @@ public:
         return bit_vect.dot(bit_mask);
     }
 };
+
+}

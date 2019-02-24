@@ -9,6 +9,8 @@
  * Eigen seems to only support uniform random.
  */
 
+namespace nr {
+
 class NormalMatrix {
 private:
     std::random_device rd;
@@ -30,3 +32,5 @@ public:
         }
     }
 };
+
+}

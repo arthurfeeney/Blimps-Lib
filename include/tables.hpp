@@ -12,12 +12,16 @@
 #include "simple_lsh.hpp"
 #include "table.hpp"
 
+namespace nr {
+
 template<typename Vect>
 class Tables {
 private:
+    using Component = typename Vect::value_type;
     using KV = std::pair<Vect, int64_t>;
 
     int64_t num_partitions;
+    int64_t num_buckets;
     SimpleLSH hash;
     std::vector<Table<Vect>> tables;
     std::vector<typename Vect::value_type> normalizers;
@@ -30,12 +34,13 @@ public:
            int64_t dim, 
            int64_t num_buckets):
         num_partitions(num_partitions),
+        num_buckets(num_buckets),
         hash(bits, dim),
         tables(num_partitions, Table<Vect>(hash, num_buckets))
     {}
     
     template<typename Cont>
-    void fill(const Cont& data)        
+    void fill(const Cont& data, bool is_normalized)        
     {
         /*
          * partition data and put partitions into different tables.
@@ -59,7 +64,8 @@ public:
             tables.at(p).fill(parted_data.at(p),
                               indices.at(p),
                               parts.at(p),
-                              normalizers.at(p));
+                              normalizers.at(p), 
+                              is_normalized);
         }
     }
 
@@ -97,16 +103,60 @@ public:
             }
         }
 
-        if(x.size() == 0) {
-            return std::make_pair(false, KV());
-        }
-
         KV ret = *std::max_element(x.begin(), x.end(), 
                                    [&](KV y, KV z) {
                                      return q.dot(y.first) < q.dot(z.first);
                                    });
                                     
-        return std::make_pair(true, ret);
+        // if x.size() == 0, nothing was found so it should return false
+        return std::make_pair(x.size() != 0, ret);
+    }
+
+    std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx) {
+        std::vector<std::vector<int64_t>> rankings(tables.size());
+
+        for(auto it = tables.begin(); it < tables.end(); ++it) {
+            rankings[it - tables.begin()] = (*it).probe_ranking(idx);
+        }
+        
+        return rankings;
+    }
+
+    std::pair<bool, KV> probe_approx(const Vect& q, Component c) {
+        auto rankings = sub_tables_rankings(hash(q) % num_buckets);
+
+        // iterate column major until dot(q, x) > c is found.
+        for(size_t col = 0; col < num_buckets; ++col) {
+            for(size_t t = 0; t < rankings.size(); ++t) {
+                auto found = tables[t].look_in(rankings[t][col], q, c);
+                if(found.first) {
+                    return found;
+                }
+            }
+        }
+
+        return std::make_pair(false, KV());
+    } 
+
+    std::pair<bool, std::vector<KV>> 
+    k_probe_approx(int64_t k, const Vect& q, Component c) {
+        auto rankings = sub_tables_rankings(hash(q) % num_buckets);
+
+        std::vector<KV> vects(0);
+
+        for(size_t col = 0; col < num_buckets; ++col) {
+            for(size_t t = 0; t < rankings.size(); ++t) {
+                auto found = tables[t].look_in(rankings[t][col], q, c);
+                if(found.first) {
+                    vects.push_back(found.second);
+                }
+                if(vects.size() == k) {
+                    return std::make_pair(true, vects);
+                }
+            }
+        }
+        
+        return std::make_pair(vects.size() != 0, vects);
     }
 
     void print_stats() {
@@ -116,6 +166,7 @@ public:
             table.print_stats(); 
             ++table_id;
         }
-
     }
 };
+
+}

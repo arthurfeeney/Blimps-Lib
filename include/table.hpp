@@ -6,7 +6,7 @@
 #include <utility>
 #include <cmath>
 #include <numeric>
-#include <queue>
+#include <map>
 #include <omp.h>
 
 #include <iostream>
@@ -14,9 +14,12 @@
 #include "simple_lsh.hpp"
 #include "stats.hpp"
 
+namespace nr {
+
 template<typename Vect>
 class Table {
 private:
+    using Component = typename Vect::value_type;
     using KV = std::pair<Vect, int64_t>;
     int64_t num_buckets;
     std::vector<std::list<KV>> table;
@@ -33,19 +36,27 @@ public:
 
     //template<template<typename Sub> typename Cont>
     void fill(const std::vector<Vect>& normalized_partition, 
-              const std::vector<int64_t>& indices,
-              const std::vector<int64_t>& ids,
-              typename Vect::value_type Up)
+                         const std::vector<int64_t>& indices,
+                         const std::vector<int64_t>& ids,
+                         const Component Up,
+                         bool is_normalized)
     {
         for(size_t i = 0; i < indices.size(); ++i) {
             KV to_insert = std::make_pair(normalized_partition.at(i), 
                                           ids.at(i));
+            if(is_normalized) {
             // use % to make sure all indices in range. 
-            table.at(indices.at(i) % table.size()).push_back(to_insert);
+                table.at(indices.at(i) % table.size()).push_back(to_insert);
+            }
+            else {
+                KV fix_to_insert = std::make_pair(to_insert.first * Up,
+                                                  to_insert.second);
+                table.at(indices.at(i) % table.size())
+                    .push_back(fix_to_insert);
+            }
         }    
         normalizer = Up;
     }
-
 
     std::pair<bool, KV> MIPS(const Vect& q) {
         int64_t idx = hash(q) % table.size();
@@ -81,15 +92,11 @@ public:
         double big_dot = -9999999;
 
         for(int64_t r = 0; r < n_to_probe; ++r) {
-
             for(const auto& current : table.at(rank.at(r))) {
-
                 double dot = q.dot(current.first);
-
                 if(dot > big_dot) {
                     big_dot = dot;
                     max = current;
-                    std::cout << "found bigger" << '\n';
                 }
             }            
         }
@@ -101,21 +108,14 @@ public:
         return std::make_pair(true, max);
     }
 
-
-    int64_t hamming_distance(int64_t x, int64_t y) const {
-        int64_t dist = 0;
-        for(int64_t z = x ^ y; z > 0; z >>= 1) {
-            dist += x & 1;
-        }
-        return dist;
-    }
-
-
     int64_t sim(int64_t idx, int64_t other) const {
-        double l = static_cast<double>(hamming_distance(idx, other));
+        constexpr double PI = 3.141592653589;
+        constexpr double e  = 0.1;
+        //double l = static_cast<double>(hamming_distance(idx, other));
+        double l = static_cast<double>(__builtin_popcount(idx ^ other));
         double L = static_cast<double>(hash.bit_count());
 
-        return normalizer * std::cos(3.14159265358979 * (1 - (l / L)));
+        return normalizer * std::cos(PI * (1 - e)* (1 - (l / L)));
     }
 
 
@@ -123,22 +123,37 @@ public:
         std::vector<int64_t> rank(table.size(), 0);
         std::iota(rank.begin(), rank.end(), 0);
 
-        // want things with a small hamming distance to be in the front.
-        // so sort in ascedning order 
+        // Similarity metric -> bigger = more similar.
+        // So this should be in descending order. 
         std::sort(rank.begin(), rank.end(), 
                   [&](int64_t x, int64_t y) {
-                    return sim(idx, x) < sim(idx, y);       
+                    return sim(idx, x) > sim(idx, y);       
                   });
         
         return rank;
     }
 
+    std::pair<bool, KV> look_in(int64_t bucket, const Vect& q, double c) {
+        for(auto it = table[bucket].begin(); 
+            it != table[bucket].end(); ++it) {
+            if(c < q.dot((*it).first)) {
+                return std::make_pair(true, *it);
+            }
+        }
+        return std::make_pair(false, KV());
+    }
+
     void print_stats() {
         std::vector<size_t> bucket_sizes(table.size(), 0);
+
+        size_t num_empty_buckets = 0;
         
         #pragma omp parallel for
         for(size_t i = 0; i < bucket_sizes.size(); ++i) {
             bucket_sizes.at(i) = table.at(i).size();
+            if(bucket_sizes.at(i) == 0) {
+                ++num_empty_buckets;
+            }
         }
 
         size_t max = *std::max_element(bucket_sizes.begin(),
@@ -146,13 +161,17 @@ public:
         size_t min = *std::min_element(bucket_sizes.begin(),
                                        bucket_sizes.end());
 
-        auto var = NR_stats::variance(bucket_sizes); 
+        auto var = stats::variance(bucket_sizes); 
         auto stdev = std::sqrt(var);
 
-        std::cout << "\tmean:  " << NR_stats::mean(bucket_sizes) << '\n';
-        std::cout << "\tmax:   " << max << '\n';
-        std::cout << "\tmin:   " << min << '\n';
-        std::cout << "\tvar:   " << var << '\n';
-        std::cout << "\tstdev: " << stdev << '\n';
+        std::cout << "\tmean:   " << stats::mean(bucket_sizes) << '\n';
+        std::cout << "\tmax:    " << max << '\n';
+        std::cout << "\tmin:    " << min << '\n';
+        std::cout << "\tvar:    " << var << '\n';
+        std::cout << "\tstdev:  " << stdev << '\n';
+        std::cout << "\tmedian: " << stats::median(bucket_sizes) << '\n';
+        std::cout << "\tempty:  " << num_empty_buckets << '\n';
     }
 };
+
+}

@@ -15,6 +15,7 @@
  * Will implement multi-probe in the future. 
  */
 
+namespace nr {
 
 template<typename Vect>
 class NR_MultiTable {
@@ -40,7 +41,7 @@ public:
     void fill(const Cont& data)
     {
         for(auto& tables : nr_tables) {
-            tables.fill(data);
+            tables.fill(data, false);
         }
     }
 
@@ -69,3 +70,5 @@ public:
         return std::make_pair(true, max);
     } 
 };
+
+}

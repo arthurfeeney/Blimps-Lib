@@ -1,5 +1,4 @@
 
-
 #pragma once
 
 #include <iostream>
@@ -11,6 +10,7 @@
 #include <cmath>
 
 #include "simple_lsh.hpp"
+#include "index_builder.hpp"
 
 /*
  * Contains operations for "index-building" 
@@ -19,12 +19,12 @@
  * Needs to be refactored, badly.
  */
 
-
+namespace nr {
 
 template<typename VectCont, typename IntCont>
 auto max_norm(const VectCont& data, 
               const IntCont& partition) 
-    -> typename VectCont::value_type::value_type
+//    -> typename VectCont::value_type::value_type
 {
     /*
      * Finds the largest norm in a partition of data.
@@ -44,8 +44,8 @@ auto max_norm(const VectCont& data,
 
 
 template<typename VectCont>
-auto partitioner(const VectCont& dataset, int64_t m) 
-    -> std::vector<std::vector<int64_t>>
+std::vector<std::vector<int64_t>>
+partitioner(const VectCont& dataset, int64_t m) 
 {
     /*
      * Params:
@@ -104,6 +104,7 @@ normalizer(const VectCont& dataset,
     
     std::vector<typename T::value_type> U(partitions.size());
     
+    // initialize partitions of normalized dataset.
     for(size_t p = 0; p < partitions.size(); ++p) {
         normalized_dataset.at(p) = std::vector<T>(partitions.at(p).size());
     }
@@ -112,20 +113,19 @@ normalizer(const VectCont& dataset,
 
         auto Up = max_norm(dataset, partitions.at(p)); 
         
-        U.at(p) = Up; // tables store the normalizer, so it can be undone after querying
+        U.at(p) = Up; 
         
         for(size_t i = 0; i < partitions.at(p).size(); ++i) {
             auto normalized = dataset.at(partitions.at(p).at(i)) / Up;
-            normalized_dataset.at(p).at(i) = normalized;//.push_back(normalized); 
+            normalized_dataset.at(p).at(i) = normalized; 
         }
     }
     return std::make_pair(normalized_dataset, U);
 }
 
 template<typename PartCont>
-auto simple_LSH_partitions(const PartCont& partitioned_dataset,
-                            SimpleLSH hash)
-    -> std::vector<std::vector<int64_t>>
+std::vector<std::vector<int64_t>>
+simple_LSH_partitions(const PartCont& partitioned_dataset, SimpleLSH hash)
 {
     //SimpleLSH hash(bits, partitioned_dataset[0][0].rows());
     
@@ -146,7 +146,7 @@ auto simple_LSH_partitions(const PartCont& partitioned_dataset,
     return indices;
 }
 
-
+}
 
 
 

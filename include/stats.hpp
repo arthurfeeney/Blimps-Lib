@@ -4,6 +4,7 @@
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 /*
  * Implementations of some simple statistics that are not provided 
@@ -11,7 +12,8 @@
  */
 
 
-namespace NR_stats {
+namespace nr {
+namespace stats {
 
 template<typename Cont>
 double mean(const Cont& c) {
@@ -27,4 +29,26 @@ double variance(const Cont& c) {
     return s / static_cast<decltype(s)>(c.size()); 
 }
 
+template<typename Cont>
+typename Cont::value_type 
+median(Cont c) {
+    // don't need to sort, but c shouldn't be that large anyway.
+    // so the time shouldn't be too bad anyway.
+    
+    if(c.size() == 0) {
+        // median of empty container is undefined
+        throw std::logic_error("cannot take median of empty container");
+    }
+
+    std::sort(c.begin(), c.end());
+
+    if(c.size() % 2 == 0) {
+        return (c[c.size() / 2 -1] + c[c.size() / 2]) / 2; 
+    }
+    else {
+        return c[c.size() / 2];
+    }
+}
+
+}
 }

@@ -9,6 +9,7 @@
 #include "../include/NR_multiprobe.hpp"
 
 namespace py = pybind11;
+using namespace nr;
 
 using Vect = Eigen::VectorXd;
 using T = std::vector<Vect>;
@@ -23,6 +24,7 @@ PYBIND11_MODULE(nr, m) {
         .def(py::init<int64_t, int64_t, int64_t, int64_t>())
         .def("fill", &NR_MultiProbe<Vect>::fill<T>)
         .def("probe", &NR_MultiProbe<Vect>::probe)
+        .def("probe_approx", &NR_MultiProbe<Vect>::probe_approx)
+        .def("k_probe_approx", &NR_MultiProbe<Vect>::k_probe_approx)
         .def("stats", &NR_MultiProbe<Vect>::print_stats);
 };
-

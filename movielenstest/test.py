@@ -28,18 +28,25 @@ def main():
     u, s, vt = svds(review_matrix_csr, k=150)
 
     #n = nr.MultiTable(30, 32, 16, 150)
-    n = nr.MultiProbe(64, 56, 150, 500) 
+    n = nr.MultiProbe(32, 32, 150, 2000) 
 
-    n.fill(vt.transpose())
+    n.fill(vt.transpose(), False)
 
     n.stats()
 
-    user = u[1]
+    user = u[6]
 
-    success, (q, index) = n.probe(user, 75)
+    succes, p = n.k_probe_approx(5, user, .007)
+    movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
+    movies_line = movies_file.readlines()
+    movies = [line.split('::') for line in movies_line]
+    for v, i in p:
+        print(movies[i])
 
-    print(success)
-    print(q)
+    '''
+    success, (q, index) = n.probe_approx(user, .005)
+
+    print('Success' if success else 'Fail')
 
     movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
     movies_line = movies_file.readlines()
@@ -47,10 +54,9 @@ def main():
 
     print(movies[index])
     print(q.dot(user))
-
-    print(q.dot(vt.transpose()[index]))
+    print(vt.transpose()[index].dot(user))
     print(q.dot(vt.transpose()[0]))
-    
+    '''
 
 if __name__ == "__main__":
     main()
