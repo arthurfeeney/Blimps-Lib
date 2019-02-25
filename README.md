@@ -9,9 +9,15 @@ This implementation is header-only at the moment, so it is simple to use. The on
 
 ### Todo:
 
-* statistics on bucket distributions and partitions.
-    * make python bindings
+* ~~statistics on bucket distributions and partitions.~~
+    * ~~make python bindings~~
+    * Add info specfically for non-empty buckets
 * refactor index builder (C++17 -> C++11 changes made some things ugly)
     * Some operations redundant too?
-* Implement multi-probe described in paper (and add python bindings for it)
+* ~~Implement multi-probe described in paper (and add python bindings for it)~~
 * much more thorough movielens experiments that mimick the ALSH paper. 
+* ~~supprt k-approximate MIPS.~~
+* Add statistics to check how many comparisons are made during search.
+* Fix poor bucket distributions (this may just be how it is?)
+* Better use of OpenMP. 
+    * can and should definitely be used during MIPS...
