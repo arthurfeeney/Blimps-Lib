@@ -1,6 +1,6 @@
 
 
-# A (very early/incomplete) C++11 Implementation of NR-LSH
+# A (incomplete) C++11 Implementation of Norm-Ranging Locality Sensitive Hashing
 
 ##### [Original paper](https://papers.nips.cc/paper/7559-norm-ranging-lsh-for-maximum-inner-product-search.pdf) of which I am not an author.   
  

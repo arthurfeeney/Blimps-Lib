@@ -32,11 +32,6 @@ public:
         nm.fill_matrix(a); 
 
         fill_bit_mask();
-
-        std::cout << a << '\n';
-
-        std::cout << bit_mask << ' ';
-        std::cout << '\n';
     }
 
     int64_t bit_count() const {
@@ -48,7 +43,7 @@ public:
     }
 
     void fill_bit_mask() {
-        // fill this->bit_mask with power of 2.
+        // fill this->bit_mask with powers of 2.
         for(int64_t i = 0; i < bits; ++i) {
             bit_mask(i) = std::pow(2, i);
         }

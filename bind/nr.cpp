@@ -26,5 +26,6 @@ PYBIND11_MODULE(nr, m) {
         .def("probe", &NR_MultiProbe<Vect>::probe)
         .def("probe_approx", &NR_MultiProbe<Vect>::probe_approx)
         .def("k_probe_approx", &NR_MultiProbe<Vect>::k_probe_approx)
+        .def("find_max_inner", &NR_MultiProbe<Vect>::find_max_inner)
         .def("stats", &NR_MultiProbe<Vect>::print_stats);
 };

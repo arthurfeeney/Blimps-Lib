@@ -2,8 +2,9 @@
 
 import nr
 import numpy as np
-import scipy.sparse
+import time
 
+import scipy.sparse
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import svds
 
@@ -27,21 +28,34 @@ def main():
 
     u, s, vt = svds(review_matrix_csr, k=150)
 
-    #n = nr.MultiTable(30, 32, 16, 150)
-    n = nr.MultiProbe(32, 32, 150, 2000) 
+    n = nr.MultiProbe(256, 56, 150, 100) 
 
     n.fill(vt.transpose(), False)
 
     n.stats()
 
-    user = u[6]
+    user = u[8]
 
+
+    end = time.time()
     succes, p = n.k_probe_approx(5, user, .007)
+    #success, (v, i) = n.probe_approx(user, .007)
+    end = time.time() - end
+    print(end)
+    
+    
     movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
     movies_line = movies_file.readlines()
     movies = [line.split('::') for line in movies_line]
     for v, i in p:
         print(movies[i])
+
+    end = time.time()
+    true_max = n.find_max_inner(user)
+    end = time.time() - end
+    print(end)
+    print(movies[true_max[1]])
+    print(user.dot(true_max[0]))
 
     '''
     success, (q, index) = n.probe_approx(user, .005)

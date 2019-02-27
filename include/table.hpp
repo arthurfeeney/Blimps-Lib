@@ -8,6 +8,8 @@
 #include <numeric>
 #include <map>
 #include <omp.h>
+#include <limits>
+#include <stdexcept>
 
 #include <iostream>
 
@@ -21,13 +23,14 @@ class Table {
 private:
     using Component = typename Vect::value_type;
     using KV = std::pair<Vect, int64_t>;
-    int64_t num_buckets;
+
+    size_t num_buckets;
     std::vector<std::list<KV>> table;
     SimpleLSH hash;
     typename Vect::value_type normalizer; // this partitions Up normalizer
 
 public:
-    Table(SimpleLSH hash, int64_t num_buckets):
+    Table(SimpleLSH hash, size_t num_buckets):
         num_buckets(num_buckets),
         table(num_buckets),
         hash(hash),
@@ -51,6 +54,7 @@ public:
             else {
                 KV fix_to_insert = std::make_pair(to_insert.first * Up,
                                                   to_insert.second);
+
                 table.at(indices.at(i) % table.size())
                     .push_back(fix_to_insert);
             }
@@ -58,24 +62,35 @@ public:
         normalizer = Up;
     }
 
+    size_t first_non_empty_bucket() {
+        for(size_t bucket = 0; bucket < num_buckets; ++bucket) {
+            if(table.at(bucket).size() > 0) {
+                return bucket;
+            }
+        }
+        return -1;
+    }
+
     std::pair<bool, KV> MIPS(const Vect& q) {
-        int64_t idx = hash(q) % table.size();
+        /*int64_t idx = hash(q) % table.size();
 
         if(table.at(idx).size() == 0) {
             return std::make_pair(false, KV());
-        }
+        }*/
 
-        KV max = *table.at(idx).begin();
+        size_t start_bucket = first_non_empty_bucket();
+
+        KV max = *table.at(start_bucket).begin();
         double big_dot = q.dot(max.first);
 
-        for(auto iter = ++table.at(idx).begin(); 
-                 iter != table.at(idx).end(); 
-                 ++iter) {
-            KV current = *iter;
-            double dot = q.dot(current.first);
-            if(dot > big_dot) {
-                big_dot = dot;
-                max = current;
+        for(size_t idx = start_bucket; idx < num_buckets; ++idx) {
+            for(auto& current : table[idx]) {
+                //KV current = *iter;
+                double dot = q.dot(current.first);
+                if(dot > big_dot) {
+                    big_dot = dot;
+                    max = current;
+                }
             }
         }
 
@@ -89,7 +104,7 @@ public:
         std::vector<int64_t> rank = probe_ranking(idx);
 
         KV max = std::make_pair(Vect(1), -1); // initialize to impossible val
-        double big_dot = -9999999;
+        double big_dot = std::numeric_limits<Component>::min();
 
         for(int64_t r = 0; r < n_to_probe; ++r) {
             for(const auto& current : table.at(rank.at(r))) {
@@ -171,6 +186,21 @@ public:
         std::cout << "\tstdev:  " << stdev << '\n';
         std::cout << "\tmedian: " << stats::median(bucket_sizes) << '\n';
         std::cout << "\tempty:  " << num_empty_buckets << '\n';
+    }
+
+    const std::list<KV>& at(int idx) const {
+        if(!(idx < size())) {
+            throw std::out_of_range("Table::at(idx) idx out of bounds.");
+        }
+        return (*this)[idx];
+    }
+
+    const std::list<KV>& operator[](int idx) const {
+        return table[idx];
+    }
+
+    size_t size() const {
+        return num_buckets;
     }
 };
 

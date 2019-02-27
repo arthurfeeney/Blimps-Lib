@@ -24,7 +24,6 @@ namespace nr {
 template<typename VectCont, typename IntCont>
 auto max_norm(const VectCont& data, 
               const IntCont& partition) 
-//    -> typename VectCont::value_type::value_type
 {
     /*
      * Finds the largest norm in a partition of data.
@@ -39,6 +38,7 @@ auto max_norm(const VectCont& data,
             max = norm;
         }   
     }
+
     return max;
 }
 
@@ -66,7 +66,7 @@ partitioner(const VectCont& dataset, int64_t m)
     
     std::sort(ranking.begin(), 
               ranking.end(),
-              [&](int64_t x, int64_t y) {
+              [norms](int64_t x, int64_t y) {
                 return norms.at(x) < norms.at(y);
               });
 
@@ -97,16 +97,16 @@ std::pair<std::vector<std::vector<typename VectCont::value_type>>,
 normalizer(const VectCont& dataset, 
            const std::vector<std::vector<int64_t>>& partitions) 
 {
-    using T = typename VectCont::value_type;
+    using Vect = typename VectCont::value_type;
 
-    std::vector<std::vector<T>> normalized_dataset(partitions.size(), 
-                                                   std::vector<T>(0));
+    std::vector<std::vector<Vect>> normalized_dataset(partitions.size(), 
+                                                   std::vector<Vect>(0));
     
-    std::vector<typename T::value_type> U(partitions.size());
+    std::vector<typename Vect::value_type> U(partitions.size());
     
     // initialize partitions of normalized dataset.
     for(size_t p = 0; p < partitions.size(); ++p) {
-        normalized_dataset.at(p) = std::vector<T>(partitions.at(p).size());
+        normalized_dataset.at(p) = std::vector<Vect>(partitions.at(p).size());
     }
 
     for(size_t p = 0; p < partitions.size(); ++p) {
