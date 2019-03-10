@@ -26,11 +26,11 @@ private:
 
     size_t num_buckets;
     std::vector<std::list<KV>> table;
-    SimpleLSH hash;
+    SimpleLSH<Component> hash;
     typename Vect::value_type normalizer; // this partitions Up normalizer
 
 public:
-    Table(SimpleLSH hash, size_t num_buckets):
+    Table(SimpleLSH<Component> hash, size_t num_buckets):
         num_buckets(num_buckets),
         table(num_buckets),
         hash(hash),

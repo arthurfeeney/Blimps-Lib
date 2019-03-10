@@ -11,13 +11,14 @@
 
 namespace nr {
 
+template<typename Component>
 class NormalMatrix {
 private:
     std::random_device rd;
     std::mt19937 gen;
-    std::normal_distribution<> d;
+    std::normal_distribution<Component> d;
 public:
-    NormalMatrix(double mean=0.0, double stddev=1.0): 
+    NormalMatrix(Component mean=0.0, Component stddev=1.0): 
         rd(), 
         gen(rd()), 
         d(0,1) 

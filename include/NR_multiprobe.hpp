@@ -66,7 +66,6 @@ public:
     }
 
     KV find_max_inner(const Vect& q) {
-        // refactor this.
             
         /*
          * Finds the true maximum inner product in the dataset, not an 

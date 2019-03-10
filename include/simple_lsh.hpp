@@ -1,11 +1,12 @@
 
-
 #pragma once
 
 #include <Eigen/Core>
 #include <random>
+#include <type_traits>
 
 #include "normal_matrix.hpp"
+#include "xf_or_xd.hpp"
 
 /*
  * SimpleLSH family.
@@ -13,24 +14,27 @@
 
 namespace nr {
 
+template<typename Component>
 class SimpleLSH {
 private:
-    Eigen::MatrixXd a;
+    // use the proper matrix and vector type for component.
+    using Matrix = typename MatrixXf_or_Xd<Component>::type;
+    using Vect   = typename VectorXf_or_Xd<Component>::type;
+
+    Matrix a;
     int64_t bits;
     int64_t dim;
-
-    Eigen::VectorXd bit_mask;
+    Vect bit_mask;
 
 public:
     SimpleLSH(int64_t bits, int64_t dim): 
-        a(Eigen::MatrixXd(bits, dim+1)),
+        a(Matrix(bits, dim+1)),
         bits(bits),
         dim(dim),
         bit_mask(bits)
     {
-        NormalMatrix nm;
+        NormalMatrix<Component> nm;
         nm.fill_matrix(a); 
-
         fill_bit_mask();
     }
 
@@ -50,7 +54,7 @@ public:
     }
 
     template<typename T>
-    T P(T input) {
+    T P(T input) const {
         // symmetric transform that appends sqrt(1 - ||input||) to input
         T append(dim+1);
         append << input, std::sqrt(1 - input.norm()); // append sqrt to input.
@@ -58,7 +62,7 @@ public:
     }
 
     template<typename T>
-    T numerals_to_bits(T input) {
+    T numerals_to_bits(T input) const {
         // if a value is positive, it's bit is 1, otherwise 0.
         // can be in place because input arg is a copy. 
         for(int64_t i = 0; i < input.rows(); ++i) {

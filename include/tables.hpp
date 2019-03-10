@@ -19,18 +19,18 @@ namespace nr {
 template<typename Vect>
 class Tables {
 private:
-    friend class iterator;
 
     using Component = typename Vect::value_type;
     using KV = std::pair<Vect, int64_t>;
 
     int64_t num_partitions; // corresponds to the number of tables.
     size_t num_buckets;    // is the size of each table.
-    SimpleLSH hash;
+    SimpleLSH<Component> hash;
     std::vector<Table<Vect>> tables;
-    std::vector<typename Vect::value_type> normalizers;
+    std::vector<Component> normalizers;
 
 public:
+
     Tables():num_partitions(0), hash(0,0) {} // empty constructor. 
 
     Tables(int64_t num_partitions, 
@@ -53,7 +53,7 @@ public:
         auto normal_data_and_U = normalizer(data, parts);
         auto normal_data = normal_data_and_U.first;
         normalizers = normal_data_and_U.second;
-        auto indices = simple_LSH_partitions(normal_data, hash); 
+        auto indices = simple_LSH_partitions<decltype(normal_data), Component>(normal_data, hash); 
 
         std::vector<std::vector<Vect>> parted_data(parts.size());
 
@@ -78,8 +78,7 @@ public:
 
     std::pair<bool, KV> MIPS(const Vect& q) const {
         /*
-         * Specific for MultiTable.
-         * Search partitions in each table for MIP with q.
+         * Search partitions in each table for exact MIP with q.
          */
         std::vector<KV> x(0);
         for(auto t : tables) {
@@ -118,7 +117,8 @@ public:
         return std::make_pair(x.size() != 0, ret);
     }
 
-    std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx) {
+    std::vector<std::vector<int64_t>> 
+    sub_tables_rankings(int64_t idx) {
         std::vector<std::vector<int64_t>> rankings(tables.size());
 
         for(auto it = tables.begin(); it < tables.end(); ++it) {
@@ -176,7 +176,7 @@ public:
 
     const Table<Vect>& at(int idx) const {
         if(!(idx < size())) {
-            throw std::out_of_range("Table::at(idx) idx out of bounds.");
+            throw std::out_of_range("Tables::at(idx) idx out of bounds.");
         }
         return (*this)[idx];
     }
@@ -188,7 +188,6 @@ public:
     size_t size() const {
         return tables.size();
     }
-
 
     typename std::vector<Table<Vect>>::iterator begin() {
         return tables.begin();

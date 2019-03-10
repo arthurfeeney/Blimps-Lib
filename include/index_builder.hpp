@@ -123,13 +123,12 @@ normalizer(const VectCont& dataset,
     return std::make_pair(normalized_dataset, U);
 }
 
-template<typename PartCont>
+template<typename PartCont, typename Component>
 std::vector<std::vector<int64_t>>
-simple_LSH_partitions(const PartCont& partitioned_dataset, SimpleLSH hash)
+simple_LSH_partitions(const PartCont& partitioned_dataset, 
+                      SimpleLSH<Component> hash)
 {
-    //SimpleLSH hash(bits, partitioned_dataset[0][0].rows());
-    
-    size_t m = partitioned_dataset.size();
+    const size_t m = partitioned_dataset.size();
 
     std::vector<std::vector<int64_t>> indices(m, std::vector<int64_t>(0));
 
