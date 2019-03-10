@@ -16,10 +16,6 @@
 
 namespace nr {
 
-class MultiProbe {
-
-};
-
 template<typename Vect>
 class NR_MultiProbe {
 private:
