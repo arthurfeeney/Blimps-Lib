@@ -12,5 +12,5 @@ binding:
 	g++ $(FLAGS) $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) $(FILE) $(OUT)
 
 clean:
-	rm bind/nr.so
+	rm bind/nr_binding.so
 

@@ -1,6 +1,6 @@
 
 
-import nr
+import nr_lsh as nr
 import numpy as np
 import time
 
@@ -28,7 +28,7 @@ def main():
 
     u, s, vt = svds(review_matrix_csr, k=150)
 
-    n = nr.MultiProbe(256, 56, 150, 100) 
+    n = nr.multiprobe(256, 56, 150, 100) 
 
     n.fill(vt.transpose(), False)
 
@@ -39,11 +39,10 @@ def main():
 
     end = time.time()
     succes, p = n.k_probe_approx(5, user, .007)
-    #success, (v, i) = n.probe_approx(user, .007)
     end = time.time() - end
     print(end)
-    
-    
+
+
     movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
     movies_line = movies_file.readlines()
     movies = [line.split('::') for line in movies_line]
