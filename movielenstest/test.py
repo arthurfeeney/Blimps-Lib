@@ -38,16 +38,20 @@ def main():
 
 
     end = time.time()
-    succes, p = n.k_probe_approx(5, user, .007)
+    succes, p, stats = n.k_probe_approx(1, user, .007)
     end = time.time() - end
     print(end)
 
+    print('comparisons: ' + str(stats.get_stats()))
 
+    '''
     movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
     movies_line = movies_file.readlines()
     movies = [line.split('::') for line in movies_line]
     for v, i in p:
         print(movies[i])
+
+
 
     end = time.time()
     true_max = n.find_max_inner(user)
@@ -55,6 +59,7 @@ def main():
     print(end)
     print(movies[true_max[1]])
     print(user.dot(true_max[0]))
+    '''
 
     '''
     success, (q, index) = n.probe_approx(user, .005)
