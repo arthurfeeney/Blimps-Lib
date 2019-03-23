@@ -7,8 +7,7 @@
 /*
  * Helper classes to determine if something should use Xd or Xf based on
  * the component type. These could probably be combined into one that takes a
- * matrix or vector parameter, but I think this is better, would have
- * to define a generic matrix type or enum...
+ * matrix or vector parameter, but I think this is more readable
  */
 
 namespace nr {

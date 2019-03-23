@@ -26,40 +26,48 @@ def main():
     review_matrix_csr = csr_matrix((data, (user_id, movie_id)), 
                                    shape=(num_reviewers, num_movies))
 
-    u, s, vt = svds(review_matrix_csr, k=150)
+    u, s, vt = svds(review_matrix_csr, k=200)
 
-    n = nr.multiprobe(256, 56, 150, 100) 
+    n = nr.multiprobe(256, 6, 200, 75)
 
     n.fill(vt.transpose(), False)
 
     n.stats()
 
-    user = u[8]
+    num_comps = 0
+    for i in range(num_reviewers):
+        print(i)
 
+        if (i+1) % 100 == 0:
+            break
 
-    end = time.time()
-    succes, p, stats = n.k_probe_approx(1, user, .007)
-    end = time.time() - end
-    print(end)
+        user = u[i]
 
-    print('comparisons: ' + str(stats.get_stats()))
+        end = time.time()
+        succes, p, stat_tracker = n.k_probe_approx(1, user, .005)
+        end = time.time() - end
+        #print(end)
 
-    '''
-    movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
-    movies_line = movies_file.readlines()
-    movies = [line.split('::') for line in movies_line]
-    for v, i in p:
-        print(movies[i])
+        #print('comparisons: ' + str(stat_tracker.get_stats()))
 
+        comps, = stat_tracker.get_stats()
 
+        num_comps += comps
 
-    end = time.time()
-    true_max = n.find_max_inner(user)
-    end = time.time() - end
-    print(end)
-    print(movies[true_max[1]])
-    print(user.dot(true_max[0]))
-    '''
+        #movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
+        #movies_line = movies_file.readlines()
+        #movies = [line.split('::') for line in movies_line]
+        #for v, i in p:
+        #    print(movies[i])
+
+        #end = time.time()
+        #true_max = n.find_max_inner(user)
+        #end = time.time() - end
+        #print(end)
+        #print(movies[true_max[1]])
+        #print(user.dot(true_max[0]))
+
+    print(num_comps / 100)
 
     '''
     success, (q, index) = n.probe_approx(user, .005)

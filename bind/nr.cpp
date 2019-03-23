@@ -13,6 +13,12 @@ using namespace nr;
 using namespace Eigen;
 
 PYBIND11_MODULE(nr_binding, m) {
+
+  // binding for StatTracker so Python users have access to it!
+  py::class_<StatTracker>(m, "StatTracker")
+      .def(py::init<>())
+      .def("get_stats", &StatTracker::get_stats);
+
   // double tables.
   py::class_<NR_MultiTable<VectorXd>>(m, "MultiTableDouble")
       .def(py::init<int64_t, int64_t, int64_t, int64_t>())

@@ -14,7 +14,6 @@
 
 /*
  * Contains operations for "index-building"
- * for nr-lsh.
  *
  * Needs to be refactored, badly.
  */
@@ -43,11 +42,6 @@ auto max_norm(const VectCont &data, const IntCont &partition) {
 template <typename VectCont>
 std::vector<std::vector<int64_t>> partitioner(const VectCont &dataset,
                                               int64_t m) {
-  /*
-   * Params:
-   * :dataset: some matrix datset.
-   * :m: the number of sub-datasets to partition.
-   */
 
   using VectComponent = typename VectCont::value_type::value_type;
 
@@ -60,12 +54,16 @@ std::vector<std::vector<int64_t>> partitioner(const VectCont &dataset,
   std::vector<int64_t> ranking(dataset.size());
   std::iota(ranking.begin(), ranking.end(), 0);
 
+  // rank the vectors in dataset based on their norms
   std::sort(ranking.begin(), ranking.end(), [norms](int64_t x, int64_t y) {
     return norms.at(x) < norms.at(y);
   });
 
   std::vector<std::vector<int64_t>> partitions(m, std::vector<int64_t>(0));
 
+  // put into partition based on norms.
+  // vectors with smallest norms go in the first partition
+  // vectors with largest norms go in the last partition
   int64_t current_partition = 0;
   for (size_t i = 0; i < dataset.size(); ++i) {
     if (i != 0 && (i % (dataset.size() / m) == 0)) {

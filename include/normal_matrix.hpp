@@ -17,8 +17,8 @@ private:
   std::normal_distribution<Component> d;
 
 public:
-  NormalMatrix(Component mean = 0.0, Component stddev = 1.0)
-      : rd(), gen(rd()), d(0, 1) {}
+  NormalMatrix(Component mean = 0.0, Component stdev = 1.0)
+      : rd(), gen(rd()), d(mean, stdev) {}
 
   template <typename Matr> void fill_matrix(Matr &A) {
     for (int c = 0; c < A.cols(); ++c) {

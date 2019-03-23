@@ -13,4 +13,3 @@ binding:
 
 clean:
 	rm bind/nr_binding.so
-

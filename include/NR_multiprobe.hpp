@@ -6,8 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "comp_counter.hpp"
 #include "simple_lsh.hpp"
+#include "stat_tracker.hpp"
 #include "stats.hpp"
 #include "tables.hpp"
 
@@ -23,12 +23,6 @@ private:
   using KV = std::pair<Vect, int64_t>;
 
   Tables<Vect> probe_table;
-
-  struct KVCompare {
-    Vect q;
-    KVCompare(Vect q) : q(q) {}
-    bool operator()(KV x, KV y) { return x.first.dot(q) < y.first.dot(q); }
-  };
 
 public:
   NR_MultiProbe(int64_t num_partitions, int64_t bits, int64_t dim,
@@ -47,16 +41,19 @@ public:
   }
 
   std::pair<bool, KV> probe(const Vect &q, int64_t n_to_probe) {
+    // searches through the first n_to_probe most likely buckets
+    // stat tracker isn't needed for this because it searches all the buckets.
     return probe_table.probe(q, n_to_probe);
   }
 
-  std::pair<bool, KV> probe_approx(const Vect &q, Component c) {
+  std::tuple<bool, KV, StatTracker> probe_approx(const Vect &q, Component c) {
+    // searches until it finds some x with dot(x, q) > c
     return probe_table.probe_approx(q, c);
   }
 
-  std::pair<bool, std::vector<KV>>
-  k_probe_approx(int64_t k, const Vect &q, double c,
-                 CompCounter *counter = nullptr) {
+  std::tuple<bool, std::vector<KV>, StatTracker>
+  k_probe_approx(int64_t k, const Vect &q, double c) {
+    // searches until it finds k vectors, x where all x have dot(x, q) > c
     return probe_table.k_probe_approx(k, q, c);
   }
 

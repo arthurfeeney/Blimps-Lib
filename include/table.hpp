@@ -13,8 +13,8 @@
 
 #include <iostream>
 
-#include "comp_counter.hpp"
 #include "simple_lsh.hpp"
+#include "stat_tracker.hpp"
 #include "stats.hpp"
 
 namespace nr {
@@ -63,20 +63,16 @@ public:
   }
 
   std::pair<bool, KV> MIPS(const Vect &q) const {
-
     size_t start_bucket = first_non_empty_bucket();
-
     if (start_bucket == -1) {
       /*
-       * required that data.size() > num partitions, so
-       * it should not be possible for a partition to be totally empty.
+       * it is required that data.size() > num partitions, so
+       * it should be impossible for a partition to be totally empty.
        */
       throw std::runtime_error("table::MIPS, All buckets empty.");
     }
-
     KV max = *table.at(start_bucket).begin();
     double big_dot = q.dot(max.first);
-
     for (size_t idx = start_bucket; idx < num_buckets; ++idx) {
       for (auto &current : table[idx]) {
         // KV current = *iter;
@@ -87,18 +83,15 @@ public:
         }
       }
     }
-
     return std::make_pair(true, max);
   }
 
   std::pair<bool, KV> probe(const Vect &q, int64_t n_to_probe) {
-
     int64_t idx = hash(q) % table.size();
     std::vector<int64_t> rank = probe_ranking(idx);
-
-    KV max = std::make_pair(Vect(1), -1); // initialize to impossible val
+    // initialize to impossible values
+    KV max = std::make_pair(Vect(1), -1);
     double big_dot = std::numeric_limits<Component>::min();
-
     for (int64_t r = 0; r < n_to_probe; ++r) {
       for (const auto &current : table.at(rank.at(r))) {
         double dot = q.dot(current.first);
@@ -108,18 +101,15 @@ public:
         }
       }
     }
-
     if (max.second < 0) { // no large inner products were found.
       return std::make_pair(false, KV());
     }
-
     return std::make_pair(true, max);
   }
 
   int64_t sim(int64_t idx, int64_t other) const {
     constexpr double PI = 3.141592653589;
     constexpr double e = 0.1;
-    // double l = static_cast<double>(hamming_distance(idx, other));
     double l = static_cast<double>(__builtin_popcount(idx ^ other));
     double L = static_cast<double>(hash.bit_count());
 
@@ -138,20 +128,43 @@ public:
     return rank;
   }
 
-  std::pair<bool, KV> look_in(int64_t bucket, const Vect &q, double c,
-                              CompCounter *counter = nullptr) {
-
+  std::tuple<bool, KV, StatTracker> look_in(int64_t bucket, const Vect &q,
+                                            double c) {
+    // returns first vector x of this bucket with dot(q, x) > c
+    StatTracker partition_tracker;
     for (auto it = table[bucket].begin(); it != table[bucket].end(); ++it) {
-      if (c < q.dot((*it).first)) {
-        return std::make_pair(true, *it);
+      partition_tracker.incr_comparisons();
+      if (q.dot((*it).first) > c) {
+        return std::make_tuple(true, *it, partition_tracker);
       }
     }
-    return std::make_pair(false, KV());
+    return std::make_tuple(false, KV(), partition_tracker);
+  }
+
+  std::tuple<bool, std::vector<KV>, StatTracker>
+  look_in_until(int64_t bucket, const Vect &q, double c, size_t limit) {
+    // searches this bucket until it finds <limit> vectors x where dot(q, x) > c
+    // or it reaches the end of the bucket. It returns success as long as at
+    // least one such x is found.
+    StatTracker partition_tracker;
+    std::vector<KV> successful(0);
+    for (const auto &x : table[bucket]) {
+      partition_tracker.incr_comparisons();
+      if (q.dot(x.first) > c) {
+        successful.push_back(x);
+      }
+      if (successful.size() == limit) {
+        // if limit vectors were found, the search can stop early
+        return std::make_tuple(true, successful, partition_tracker);
+      }
+    }
+    // return true if at least one vector was found. False otherwise
+    return std::make_tuple(successful.size() > 0, successful,
+                           partition_tracker);
   }
 
   void print_stats() {
     std::vector<size_t> bucket_sizes(table.size(), 0);
-
     size_t num_empty_buckets = 0;
 
 #pragma omp parallel for
@@ -188,6 +201,6 @@ public:
   const std::list<KV> &operator[](int idx) const { return table[idx]; }
 
   size_t size() const { return num_buckets; }
-};
+}; // namespace nr
 
 } // namespace nr
