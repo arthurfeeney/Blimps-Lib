@@ -44,10 +44,16 @@ public:
     }
   }
 
+  Vect get_bit_mask() const { return bit_mask; }
+
   template <typename T> T P(T input) const {
     // symmetric transform that appends sqrt(1 - ||input||) to input
     T append(dim + 1);
-    append << input, std::sqrt(1 - input.norm()); // append sqrt to input.
+    Component norm = input.norm();
+    if (norm > 1) {
+      throw std::logic_error("Cannot take sqrt of negative");
+    }
+    append << input, std::sqrt(1 - norm); // append sqrt to input.
     return append;
   }
 
@@ -55,7 +61,7 @@ public:
     // if a value is positive, it's bit is 1, otherwise 0.
     // can be in place because input arg is a copy.
     for (int64_t i = 0; i < input.rows(); ++i) {
-      input(i) = input(i) > 0 ? 1 : 0;
+      input(i) = input(i) >= 0 ? 1 : 0;
     }
     return input;
   }

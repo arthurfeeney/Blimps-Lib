@@ -17,6 +17,10 @@ namespace nr {
 namespace stats {
 
 template <typename Cont> double mean(const Cont &c) {
+  if (c.size() == 0) {
+    // mean of empty container is undefined
+    throw std::logic_error("cannot compute mean of empty container");
+  }
   auto sum = std::accumulate(c.begin(), c.end(), 0.0);
   return sum / static_cast<double>(c.size());
 }
@@ -31,7 +35,7 @@ template <typename Cont> double variance(const Cont &c) {
 
 template <typename Cont> double stdev(const Cont &c) {
   // stdev is the square root of the variance.
-  return std::sqrt<double>(variance(c));
+  return std::sqrt(variance(c));
 }
 
 template <typename Cont> typename Cont::value_type median(Cont c) {
@@ -60,9 +64,12 @@ template <typename Cont> std::vector<int64_t> histogram(const Cont &c) {
   // assumes Cont::value_type is integral.
   static_assert(std::is_integral<typename Cont::value_type>::value);
 
-  auto hist_size = *std::max_element(c.begin(), c.end());
+  auto hist_size = *std::max_element(c.begin(), c.end()) + 1;
   std::vector<int64_t> hist(hist_size, 0);
   for (const auto &elem : c) {
+    if (elem < 0) {
+      throw std::logic_error("stats::histogram cannot take negative values");
+    }
     ++hist[elem];
   }
   return hist;
