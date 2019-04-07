@@ -25,7 +25,6 @@ auto max_norm(const VectCont &data, const IntCont &partition) {
   /*
    * Finds the largest norm in a partition of data.
    */
-
   using Scalar = typename VectCont::value_type::value_type;
 
   Scalar max = -1;
@@ -39,15 +38,12 @@ auto max_norm(const VectCont &data, const IntCont &partition) {
   return max;
 }
 
-template <typename VectCont>
-std::vector<std::vector<int64_t>> partitioner(const VectCont &dataset,
-                                              int64_t m) {
+template <template <typename Vect> typename VectCont, typename Vect>
+std::vector<int64_t> rank_by_norm(const VectCont<Vect> &dataset) {
+  using Component = typename Vect::value_type;
 
-  using VectComponent = typename VectCont::value_type::value_type;
-
-  std::vector<VectComponent> norms(dataset.size());
-
-  for (size_t i = 0; i < dataset.size(); ++i) {
+  std::vector<Component> norms(dataset.size());
+  for (size_t i = 0; i < norms.size(); ++i) {
     norms.at(i) = dataset.at(i).norm();
   }
 
@@ -55,9 +51,19 @@ std::vector<std::vector<int64_t>> partitioner(const VectCont &dataset,
   std::iota(ranking.begin(), ranking.end(), 0);
 
   // rank the vectors in dataset based on their norms
+  // ascending order
   std::sort(ranking.begin(), ranking.end(), [norms](int64_t x, int64_t y) {
     return norms.at(x) < norms.at(y);
   });
+
+  return ranking;
+}
+
+template <typename VectCont>
+std::vector<std::vector<int64_t>> partitioner(const VectCont &dataset,
+                                              int64_t m) {
+
+  std::vector<int64_t> ranking = rank_by_norm(dataset);
 
   std::vector<std::vector<int64_t>> partitions(m, std::vector<int64_t>(0));
 
@@ -85,17 +91,23 @@ std::pair<std::vector<std::vector<typename VectCont::value_type>>,
           std::vector<typename VectCont::value_type::value_type>>
 normalizer(const VectCont &dataset,
            const std::vector<std::vector<int64_t>> &partitions) {
+  /*
+   * normalize partition using the largest norm in that partition.
+   * returns normalized data and the normalizer U
+   *  */
   using Vect = typename VectCont::value_type;
 
   std::vector<std::vector<Vect>> normalized_dataset(partitions.size(),
                                                     std::vector<Vect>(0));
 
-  std::vector<typename Vect::value_type> U(partitions.size());
-
   // initialize partitions of normalized dataset.
+  // done here b/c the last partition may be a different size.
   for (size_t p = 0; p < partitions.size(); ++p) {
     normalized_dataset.at(p) = std::vector<Vect>(partitions.at(p).size());
   }
+
+  // stores normalizers, Up, for each partitions
+  std::vector<typename Vect::value_type> U(partitions.size());
 
   for (size_t p = 0; p < partitions.size(); ++p) {
 

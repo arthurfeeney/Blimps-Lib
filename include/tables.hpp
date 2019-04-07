@@ -43,7 +43,7 @@ public:
     auto parts = partitioner(data, tables.size());
     auto normal_data_and_U = normalizer(data, parts);
     auto normal_data = normal_data_and_U.first;
-    normalizers = normal_data_and_U.second;
+    this->normalizers = normal_data_and_U.second;
     auto indices = simple_LSH_partitions<decltype(normal_data), Component>(
         normal_data, hash);
 
@@ -51,14 +51,12 @@ public:
 
     // each thread inserts into its own partitions, so this should be
     // safe even though there is a push_back.
-#pragma omp parallel for
     for (size_t p = 0; p < parts.size(); ++p) {
       for (size_t i = 0; i < parts.at(p).size(); ++i) {
         parted_data.at(p).push_back(data.at(parts.at(p).at(i)));
       }
     }
 
-#pragma omp parallel for
     for (size_t p = 0; p < tables.size(); ++p) {
       tables.at(p).fill(parted_data.at(p), indices.at(p), parts.at(p),
                         normalizers.at(p), is_normalized);

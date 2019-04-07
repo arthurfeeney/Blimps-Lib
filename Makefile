@@ -15,7 +15,7 @@ binding:
 clean:
 	rm bind/nr_binding.so
 
-CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp
+CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp
 
 catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp  

@@ -46,18 +46,18 @@ public:
 
   Vect get_bit_mask() const { return bit_mask; }
 
-  template <typename T> T P(T input) const {
+  Vect P(Vect input) const {
     // symmetric transform that appends sqrt(1 - ||input||) to input
-    T append(dim + 1);
+    Vect append(dim + 1);
     Component norm = input.norm();
-    if (norm > 1) {
-      throw std::logic_error("Cannot take sqrt of negative");
+    if (norm - 1 > .0001) {
+      throw std::logic_error("SimpleLSH::P, Cannot take sqrt of negative");
     }
     append << input, std::sqrt(1 - norm); // append sqrt to input.
     return append;
   }
 
-  template <typename T> T numerals_to_bits(T input) const {
+  Vect numerals_to_bits(Vect input) const {
     // if a value is positive, it's bit is 1, otherwise 0.
     // can be in place because input arg is a copy.
     for (int64_t i = 0; i < input.rows(); ++i) {
@@ -66,10 +66,10 @@ public:
     return input;
   }
 
-  template <typename T> int64_t operator()(T input) {
-    T simple = P(input);
-    T prods = a * simple;
-    T bit_vect = numerals_to_bits(prods);
+  int64_t operator()(Vect input) const {
+    Vect simple = P(input);
+    Vect prods = a * simple;
+    Vect bit_vect = numerals_to_bits(prods);
     return bit_vect.dot(bit_mask);
   }
 };

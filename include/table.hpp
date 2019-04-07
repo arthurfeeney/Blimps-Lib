@@ -107,20 +107,24 @@ public:
     return std::make_pair(true, max);
   }
 
-  int64_t sim(int64_t idx, int64_t other) const {
+  double sim(int64_t idx, int64_t other) const {
+    /*
+     * Similar inputs result in POSITIBE output.
+     * Disimilar inputs result in NEGATIVE output.
+     * sort of similar inputs result in an output closer to zero.
+     */
     constexpr double PI = 3.141592653589;
-    constexpr double e = 0.1;
-    double l = static_cast<double>(__builtin_popcount(idx ^ other));
+    constexpr double e = 0.001;
+    double l = static_cast<double>(__builtin_popcount(idx & other));
     double L = static_cast<double>(hash.bit_count());
 
-    return normalizer * std::cos(PI * (1 - e) * (1 - (l / L)));
+    return normalizer * std::cos(PI * (1.0 - e) * (1 - (l / L)));
   }
 
   std::vector<int64_t> probe_ranking(int64_t idx) const {
     std::vector<int64_t> rank(table.size(), 0);
     std::iota(rank.begin(), rank.end(), 0);
 
-    // Similarity metric -> bigger = more similar.
     // So this should be in descending order.
     std::sort(rank.begin(), rank.end(),
               [&](int64_t x, int64_t y) { return sim(idx, x) > sim(idx, y); });
@@ -175,7 +179,10 @@ public:
       }
     }
 
-    size_t max = *std::max_element(bucket_sizes.begin(), bucket_sizes.end());
+    auto most_content =
+        std::max_element(bucket_sizes.begin(), bucket_sizes.end());
+
+    size_t max = *most_content;
     size_t min = *std::min_element(bucket_sizes.begin(), bucket_sizes.end());
 
     auto var = stats::variance(bucket_sizes);
@@ -183,6 +190,8 @@ public:
 
     std::cout << "\tmean:       " << stats::mean(bucket_sizes) << '\n';
     std::cout << "\tmax:        " << max << '\n';
+    std::cout << "\tmax bucket: " << most_content - bucket_sizes.begin()
+              << '\n';
     std::cout << "\tmin:        " << min << '\n';
     std::cout << "\tvar:        " << var << '\n';
     std::cout << "\tstdev:      " << stdev << '\n';
