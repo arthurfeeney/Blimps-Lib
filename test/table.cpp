@@ -74,11 +74,11 @@ TEST_CASE("high(er)-dim similarity test", "table") {
   t.fill(partition, indices, ids, Up, false);
 
   // similar
-  CHECK(t.sim(0b111000, 0b111000) > 0);
+  REQUIRE(t.sim(0b111000, 0b111000) > 0);
 
   // disimilar
-  CHECK(t.sim(0b111000, 0b000111) < 0);
-  CHECK(t.sim(0b111001, 0b100001) < 0);
+  REQUIRE(t.sim(0b111000, 0b000111) < 0);
+  REQUIRE(t.sim(0b111001, 0b100001) < 0);
 }
 
 TEST_CASE("Test table ranking", "table") {

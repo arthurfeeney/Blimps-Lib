@@ -2,6 +2,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <random>
 #include <type_traits>
 
@@ -12,6 +13,7 @@
  * SimpleLSH family.
  */
 
+namespace mp = boost::multiprecision;
 namespace nr {
 
 template <typename Component> class SimpleLSH {
@@ -23,7 +25,7 @@ private:
   Matrix a;
   int64_t bits;
   int64_t dim;
-  Vect bit_mask;
+  std::vector<mp::cpp_int> bit_mask;
 
 public:
   SimpleLSH(int64_t bits, int64_t dim)
@@ -39,18 +41,19 @@ public:
 
   void fill_bit_mask() {
     // fill this->bit_mask with powers of 2.
-    for (int64_t i = 0; i < bits; ++i) {
-      bit_mask(i) = std::pow(2, i);
+    for (size_t i = 0; i < bits; ++i) {
+      bit_mask.at(i) = mp::pow(mp::cpp_int(2), i);
     }
   }
 
-  Vect get_bit_mask() const { return bit_mask; }
+  std::vector<mp::cpp_int> get_bit_mask() const { return bit_mask; }
 
   Vect P(Vect input) const {
     // symmetric transform that appends sqrt(1 - ||input||) to input
     Vect append(dim + 1);
     Component norm = input.norm();
-    if (norm - 1 > .0001) {
+    if (norm - 1 > .001) {
+      std::cout << norm << '\n';
       throw std::logic_error("SimpleLSH::P, Cannot take sqrt of negative");
     }
     append << input, std::sqrt(1 - norm); // append sqrt to input.
@@ -66,11 +69,26 @@ public:
     return input;
   }
 
-  int64_t operator()(Vect input) const {
+  mp::cpp_int bits_to_num(const Vect &bits) const {
+    // convert a string of bits to an integer.
+    mp::cpp_int sum = 0;
+    for (size_t i = 0; i < bits.size(); ++i) {
+      mp::cpp_int bit = bits(i) - 1 >= 0 ? 1 : 0;
+      mp::cpp_int val = 0;
+      val = mp::multiply(val, bit, bit_mask.at(i));
+      sum = mp::add(sum, sum, val);
+    }
+    return sum;
+  }
+
+  mp::cpp_int operator()(Vect input) const {
+    // with a large number of hashes, it can become larger than 64 bit.
+    // have to use multiprecision.
     Vect simple = P(input);
     Vect prods = a * simple;
     Vect bit_vect = numerals_to_bits(prods);
-    return bit_vect.dot(bit_mask);
+    std::cout << "bits" << bit_vect << '\n';
+    return bits_to_num(bit_vect);
   }
 };
 

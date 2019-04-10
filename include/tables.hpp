@@ -2,6 +2,7 @@
 #pragma once
 
 #include <algorithm>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <iostream>
 #include <iterator>
 #include <omp.h>
@@ -29,7 +30,7 @@ private:
   std::vector<Component> normalizers;
 
 public:
-  Tables() : num_partitions(0), hash(0, 0) {} // empty constructor.
+  Tables() : num_partitions(0), hash(0, 0), num_buckets(0) {}
 
   Tables(int64_t num_partitions, int64_t bits, int64_t dim, size_t num_buckets)
       : num_partitions(num_partitions), num_buckets(num_buckets),
@@ -45,7 +46,7 @@ public:
     auto normal_data = normal_data_and_U.first;
     this->normalizers = normal_data_and_U.second;
     auto indices = simple_LSH_partitions<decltype(normal_data), Component>(
-        normal_data, hash);
+        normal_data, hash, num_buckets);
 
     std::vector<std::vector<Vect>> parted_data(parts.size());
 
@@ -58,6 +59,10 @@ public:
     }
 
     for (size_t p = 0; p < tables.size(); ++p) {
+      for (auto idx : indices.at(p)) {
+        std::cout << idx << ' ';
+      }
+      std::cout << '\n';
       tables.at(p).fill(parted_data.at(p), indices.at(p), parts.at(p),
                         normalizers.at(p), is_normalized);
     }
@@ -129,15 +134,21 @@ public:
 
   std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx) {
     std::vector<std::vector<int64_t>> rankings(tables.size());
-    for (auto it = tables.begin(); it < tables.end(); ++it) {
-      rankings[it - tables.begin()] = (*it).probe_ranking(idx);
+    for (size_t i = 0; i < tables.size(); ++i) {
+      rankings.at(i) = tables.at(i).probe_ranking(idx);
     }
     return rankings;
   }
 
   std::tuple<bool, KV, StatTracker> probe_approx(const Vect &q, Component c) {
     StatTracker table_tracker;
-    auto rankings = sub_tables_rankings(hash(q) % num_buckets);
+
+    using mp = boost::multiprecision::cpp_int;
+    mp mp_hash = hash(q);
+    mp residue = mp_hash % num_buckets;
+    int64_t idx = residue.convert_to<int64_t>();
+
+    auto rankings = sub_tables_rankings(idx);
     // iterate column major until dot(q, x) > c is found.
     for (size_t col = 0; col < num_buckets; ++col) {
       for (size_t t = 0; t < rankings.size(); ++t) {
@@ -154,8 +165,18 @@ public:
 
   std::tuple<bool, std::vector<KV>, StatTracker>
   k_probe_approx(int64_t k, const Vect &q, Component c) {
+    if (k < 0) {
+      throw std::runtime_error(
+          "tables::k_probe_approx. k must be non-negative");
+    }
     StatTracker table_tracker;
-    auto rankings = sub_tables_rankings(hash(q) % num_buckets);
+
+    using mp = boost::multiprecision::cpp_int;
+    mp mp_hash = hash(q);
+    mp residue = mp_hash % num_buckets;
+    int64_t idx = residue.convert_to<int64_t>();
+
+    auto rankings = sub_tables_rankings(idx);
     std::vector<KV> vects(0);
     for (size_t col = 0; col < num_buckets; ++col) {
       for (size_t t = 0; t < rankings.size(); ++t) {
@@ -167,9 +188,9 @@ public:
         if (std::get<0>(found)) {
           // append vects from bucket to the ones already found.
           std::vector<KV> from_bucket = std::get<1>(found);
-          vects.insert(vects.begin(), from_bucket.begin(), from_bucket.end());
+          vects.insert(vects.end(), from_bucket.begin(), from_bucket.end());
         }
-        if (vects.size() == k) {
+        if (vects.size() == static_cast<size_t>(k)) {
           // look_in_until stops when it finds k - vects.size things, so
           // checking for equality is safe.
           // if k things found, return success immediately.

@@ -1,6 +1,5 @@
 
 FLAGS = -std=c++17 -O3 -shared
-TEST = -I/home/afeeney/cpplibs/Catch2/
 EIGEN = -I/home/afeeney/cpplibs/Eigen/
 PYBIND11 = -I/home/afeeney/cpplibs/pybind11/
 GSL = -I/home/afeeney/cpplibs/GSL/include/
@@ -10,11 +9,13 @@ FILE = bind/nr.cpp
 OMP = -fopenmp
 
 binding:
-	g++ $(FLAGS) $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) $(FILE) $(OUT)
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) $(FILE) $(OUT);
+	cp bind/nr_* movielenstest/
 
 clean:
 	rm bind/nr_binding.so
 
+TEST = -I/home/afeeney/cpplibs/Catch2/
 CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp
 
 catch:

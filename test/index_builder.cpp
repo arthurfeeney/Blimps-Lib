@@ -181,12 +181,17 @@ TEST_CASE("hash two single-element partitions", "index_builder") {
 
   nr::SimpleLSH<float> hash(2, 3);
 
-  int64_t h1 = hash(norm.at(0).at(0));
-  int64_t h2 = hash(norm.at(1).at(0));
-  REQUIRE(h1 < 4);
-  REQUIRE(h2 < 4);
+  size_t num_buckets = 8;
 
-  std::vector<std::vector<int64_t>> idx = nr::simple_LSH_partitions(norm, hash);
+  int64_t h1 = static_cast<int64_t>(hash(norm.at(0).at(0)) % num_buckets);
+  int64_t h2 = static_cast<int64_t>(hash(norm.at(1).at(0)) % num_buckets);
+  REQUIRE(h1 < 4);
+  REQUIRE(h1 >= 0);
+  REQUIRE(h2 < 4);
+  REQUIRE(h2 >= 0);
+
+  std::vector<std::vector<int64_t>> idx =
+      nr::simple_LSH_partitions(norm, hash, num_buckets);
 
   REQUIRE(idx.at(0).at(0) == h1);
   REQUIRE(idx.at(1).at(0) == h2);
@@ -216,11 +221,14 @@ TEST_CASE("hash 3 ten element partitions", "index_builder") {
   for (size_t i = 0; i < 3; ++i) {
     for (size_t j = 0; j < 3; ++j) {
       REQUIRE(hash(norm.at(i).at(j)) < 64);
+      REQUIRE(hash(norm.at(i).at(j)) >= 0);
     }
   }
   REQUIRE(hash(norm.at(2).at(3)) < 64);
+  REQUIRE(hash(norm.at(2).at(3)) >= 0);
 
-  std::vector<std::vector<int64_t>> idx = nr::simple_LSH_partitions(norm, hash);
+  std::vector<std::vector<int64_t>> idx =
+      nr::simple_LSH_partitions(norm, hash, 64);
   for (size_t i = 0; i < 3; ++i) {
     for (size_t j = 0; j < 3; ++j) {
       REQUIRE(hash(norm.at(i).at(j)) == idx.at(i).at(j));

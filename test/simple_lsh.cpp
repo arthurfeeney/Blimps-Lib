@@ -2,6 +2,7 @@
 #include "catch.hpp"
 
 #include <Eigen/Core>
+#include <boost/multiprecision/cpp_int.hpp>
 
 #include "../include/simple_lsh.hpp"
 
@@ -14,12 +15,12 @@ TEST_CASE("construct SimpleLSH", "simple_lsh") {
 TEST_CASE("proper bit mask", "simple_lsh") {
   nr::SimpleLSH<float> a(5, 4);
 
-  Eigen::VectorXf mask1 = a.get_bit_mask();
-  REQUIRE(mask1(0) == 1);
-  REQUIRE(mask1(1) == 2);
-  REQUIRE(mask1(2) == 4);
-  REQUIRE(mask1(3) == 8);
-  REQUIRE(mask1(4) == 16);
+  auto mask1 = a.get_bit_mask();
+  REQUIRE(mask1.at(0) == 1);
+  REQUIRE(mask1.at(1) == 2);
+  REQUIRE(mask1.at(2) == 4);
+  REQUIRE(mask1.at(3) == 8);
+  REQUIRE(mask1.at(4) == 16);
 }
 
 TEST_CASE("P() - pre-processing function correct", "simple_lsh") {
@@ -60,4 +61,17 @@ TEST_CASE("numerals to bits", "simple_lsh") {
   REQUIRE(output2(4) == 0);
   REQUIRE(output2(5) == 0);
   REQUIRE(output2(6) == 1);
+}
+
+TEST_CASE("many bit hash", "simple_lsh") {
+  using mp = boost::multiprecision::cpp_int;
+
+  nr::SimpleLSH<float> hash(128, 2);
+  Eigen::VectorXf input(2);
+  input << .3, .3;
+
+  mp idx = hash(input);
+  mp res = idx % 5;
+  int out = res.convert_to<int>();
+  REQUIRE(out < 5);
 }

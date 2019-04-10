@@ -40,14 +40,16 @@ public:
             bool is_normalized) {
     for (size_t i = 0; i < indices.size(); ++i) {
       KV to_insert = std::make_pair(normalized_partition.at(i), ids.at(i));
+
+      size_t bucket_idx = indices.at(i);
+
       if (is_normalized) {
         // use % to make sure all indices in range.
-        table.at(indices.at(i) % table.size()).push_back(to_insert);
+        table.at(bucket_idx).push_back(to_insert);
       } else {
         KV fix_to_insert =
             std::make_pair(to_insert.first * Up, to_insert.second);
-
-        table.at(indices.at(i) % table.size()).push_back(fix_to_insert);
+        table.at(bucket_idx).push_back(fix_to_insert);
       }
     }
     normalizer = Up;
@@ -87,7 +89,11 @@ public:
   }
 
   std::pair<bool, KV> probe(const Vect &q, int64_t n_to_probe) {
-    int64_t idx = hash(q) % table.size();
+    using mp = boost::multiprecision::cpp_int;
+    mp mp_hash = hash(q);
+    mp residue = mp_hash % table.size();
+    int64_t idx = residue.convert_to<int64_t>();
+
     std::vector<int64_t> rank = probe_ranking(idx);
     // initialize to impossible values
     KV max = std::make_pair(Vect(1), -1);
@@ -125,7 +131,7 @@ public:
     std::vector<int64_t> rank(table.size(), 0);
     std::iota(rank.begin(), rank.end(), 0);
 
-    // So this should be in descending order.
+    // sort in descending order. Most similar in the front.
     std::sort(rank.begin(), rank.end(),
               [&](int64_t x, int64_t y) { return sim(idx, x) > sim(idx, y); });
 

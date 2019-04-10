@@ -3,6 +3,7 @@
 
 #include <Eigen/Core>
 #include <algorithm>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <cmath>
 #include <iostream>
 #include <iterator>
@@ -18,6 +19,7 @@
  * Needs to be refactored, badly.
  */
 
+namespace mp = boost::multiprecision;
 namespace nr {
 
 template <typename VectCont, typename IntCont>
@@ -126,7 +128,7 @@ normalizer(const VectCont &dataset,
 template <typename PartCont, typename Component>
 std::vector<std::vector<int64_t>>
 simple_LSH_partitions(const PartCont &partitioned_dataset,
-                      SimpleLSH<Component> hash) {
+                      SimpleLSH<Component> hash, int64_t num_buckets) {
   const size_t m = partitioned_dataset.size();
 
   std::vector<std::vector<int64_t>> indices(m, std::vector<int64_t>(0));
@@ -135,9 +137,14 @@ simple_LSH_partitions(const PartCont &partitioned_dataset,
     indices.at(i) = std::vector<int64_t>(partitioned_dataset.at(i).size());
   }
 
+  // using mp = boost::multiprecision::cpp_int;
   for (size_t j = 0; j < partitioned_dataset.size(); ++j) {
     for (size_t p_idx = 0; p_idx < partitioned_dataset.at(j).size(); ++p_idx) {
-      indices.at(j).at(p_idx) = hash(partitioned_dataset.at(j).at(p_idx));
+      mp::cpp_int mp_hash = hash(partitioned_dataset.at(j).at(p_idx));
+      mp::cpp_int residue = mp_hash % num_buckets;
+      std::cout << mp_hash << '\n';
+      int64_t idx = residue.convert_to<int64_t>();
+      indices.at(j).at(p_idx) = idx;
     }
   }
   return indices;
