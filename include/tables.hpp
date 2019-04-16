@@ -140,7 +140,8 @@ public:
     return rankings;
   }
 
-  std::tuple<bool, KV, StatTracker> probe_approx(const Vect &q, Component c) {
+  std::tuple<bool, KV, StatTracker> probe_approx(const Vect &q, Component c,
+                                                 int64_t adj) {
     StatTracker table_tracker;
 
     using mp = boost::multiprecision::cpp_int;
@@ -150,7 +151,8 @@ public:
 
     auto rankings = sub_tables_rankings(idx);
     // iterate column major until dot(q, x) > c is found.
-    for (size_t col = 0; col < num_buckets; ++col) {
+    // look through adj other buckets. Should be the top ranked ones.
+    for (size_t col = 0; col < adj; ++col) {
       for (size_t t = 0; t < rankings.size(); ++t) {
         auto found = tables[t].look_in(rankings[t][col], q, c);
         table_tracker += std::get<2>(found); // add partition's stats to total

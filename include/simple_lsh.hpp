@@ -87,7 +87,6 @@ public:
     Vect simple = P(input);
     Vect prods = a * simple;
     Vect bit_vect = numerals_to_bits(prods);
-    std::cout << "bits" << bit_vect << '\n';
     return bits_to_num(bit_vect);
   }
 };
