@@ -26,7 +26,7 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("MIPS", &NR_MultiTable<VectorXd>::MIPS);
 
   py::class_<NR_MultiProbe<VectorXd>>(m, "MultiProbeDouble")
-      .def(py::init<int64_t, int64_t, int64_t, int64_t>())
+      .def(py::init<int64_t, int64_t, int64_t, int64_t, int64_t>())
       .def("fill", &NR_MultiProbe<VectorXd>::fill<std::vector<VectorXd>>)
       .def("probe", &NR_MultiProbe<VectorXd>::probe)
       .def("probe_approx", &NR_MultiProbe<VectorXd>::probe_approx)
@@ -41,7 +41,7 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("MIPS", &NR_MultiTable<VectorXf>::MIPS);
 
   py::class_<NR_MultiProbe<VectorXf>>(m, "MultiProbeFloat")
-      .def(py::init<int64_t, int64_t, int64_t, int64_t>())
+      .def(py::init<int64_t, int64_t, int64_t, int64_t, int64_t>())
       .def("fill", &NR_MultiProbe<VectorXf>::fill<std::vector<VectorXf>>)
       .def("probe", &NR_MultiProbe<VectorXf>::probe)
       .def("probe_approx", &NR_MultiProbe<VectorXf>::probe_approx)

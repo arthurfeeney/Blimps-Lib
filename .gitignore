@@ -3,3 +3,5 @@
 **/Eigen
 **/pybind11
 **/ml-10m
+
+*.o

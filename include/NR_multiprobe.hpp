@@ -25,10 +25,10 @@ private:
   std::vector<Tables<Vect>> probe_tables;
 
 public:
-  NR_MultiProbe(int64_t num_partitions, int64_t bits, int64_t dim,
-                size_t num_buckets)
-      : probe_tables(20, Tables<Vect>(num_partitions, bits, dim, num_buckets)) {
-  }
+  NR_MultiProbe(int64_t num_tables, int64_t num_partitions, int64_t bits,
+                int64_t dim, size_t num_buckets)
+      : probe_tables(num_tables,
+                     Tables<Vect>(num_partitions, bits, dim, num_buckets)) {}
 
   template <typename Cont> void fill(const Cont &data, bool is_normalized) {
     // if is_normalized is true, then the data input to the table is
@@ -71,6 +71,7 @@ public:
   k_probe_approx(int64_t k, const Vect &q, double c) {
     // searches until it finds k vectors, x where all x have dot(x, q) > c
     // return probe_table.k_probe_approx(k, q, c);
+    return probe_tables.at(0).k_probe_approx(k, q, c);
   }
 
   KV find_max_inner(const Vect &q) {
@@ -89,6 +90,8 @@ public:
       probe_table.print_stats();
     }
   }
+
+  size_t num_tables() const { return probe_tables.size(); }
 };
 
 } // namespace nr
