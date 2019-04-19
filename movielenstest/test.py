@@ -43,16 +43,23 @@ def main():
     review_matrix_csr = csr_matrix((data, (user_id, movie_id)),
                                    shape=(num_reviewers, num_movies))
 
-    u, s, vt = svds(review_matrix_csr, k=100)
+    u, s, vt = svds(review_matrix_csr, k=150)
 
     u = csr_matrix.dot(u, s)
 
-    num_partitions = 512
+    #
+    # Setup the probing tables!
+    #
+
+    num_tables = 20
+
+    num_partitions = 256
     num_buckets = int(10000 / num_partitions)
 
-    n = nr.multiprobe(num_partitions,
+    n = nr.multiprobe(num_tables,
+                      num_partitions,
                       bits=32,
-                      dim=100,
+                      dim=150,
                       num_buckets=num_buckets)
 
     print(num_reviewers)
@@ -64,6 +71,10 @@ def main():
     n.stats()
 
     num_comps = 0
+    num_bucks = 0
+    num_parts = 0
+    num_tables = 0
+    successful_count = 0
     for i in range(num_reviewers):
         print(i)
 
@@ -74,28 +85,28 @@ def main():
         user = u[i] / np.linalg.norm(u[i])
 
         end = time.time()
-        success, p, stat_tracker = n.probe_approx(user, .1, 10)
+        p, stat_tracker = n.probe_approx(user, .1, 10)
         end = time.time() - end
         #print(end)
 
         print('comparisons: ' + str(stat_tracker.get_stats()))
 
-        comps, = stat_tracker.get_stats()
-
-        # if it didn't find anything, just add total size of dataset.
-        if not success:
-            comps = num_movies
-
-        num_comps += comps
-
-        p = [p]
-        for v, idx in p:
-
+        if p is not None:
+            tracked = stat_tracker.tracked_stats()
+            num_comps += tracked.comps
+            num_bucks += tracked.bucks
+            num_parts += tracked.parts
+            num_tables += tracked.tables
+            successful_count += 1
+            v, idx = p
             id = idx_to_id[idx]
             movie = id_to_movie[id]
-            print(success, movie)
+            print(p is not None, movie)
 
-    print(num_comps / 1000)
+    print(' * Average Comps: ' + str(num_comps / successful_count))
+    print(' * Average Puckets Probed: ' + str(num_bucks / successful_count))
+    print(' * Average Parts Probed: ' + str(num_parts / successful_count))
+    print(' * Average Tables Probed: ' + str(num_tables / sucessful_count))
     '''
     success, (q, index) = n.probe_approx(user, .005)
 

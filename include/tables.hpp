@@ -6,6 +6,7 @@
 #include <iostream>
 #include <iterator>
 #include <omp.h>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -114,13 +115,13 @@ public:
         }));
   }
 
-  std::pair<bool, KV> probe(const Vect &q, int64_t n_to_probe) {
+  std::optional<KV> probe(const Vect &q, int64_t n_to_probe) {
     std::vector<KV> x(0);
 
     for (auto it = tables.begin(); it != tables.end(); ++it) {
-      std::pair<bool, KV> xj = (*it).probe(q, n_to_probe);
-      if (xj.first) {
-        x.push_back(xj.second);
+      std::optional<KV> xj = (*it).probe(q, n_to_probe);
+      if (xj) {
+        x.push_back(xj.value());
       }
     }
 
@@ -128,8 +129,12 @@ public:
       return q.dot(y.first) < q.dot(z.first);
     });
 
-    // if x.size() == 0, nothing was found so it should return false
-    return std::make_pair(x.size() != 0, ret);
+    // if x.size() == 0, nothing was found so it should return nothing
+    if (x.size() != 0) {
+      return ret;
+    } else {
+      return {};
+    }
   }
 
   std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx) {
@@ -140,8 +145,8 @@ public:
     return rankings;
   }
 
-  std::tuple<bool, KV, StatTracker> probe_approx(const Vect &q, Component c,
-                                                 int64_t adj) {
+  std::pair<std::optional<KV>, StatTracker>
+  probe_approx(const Vect &q, Component c, int64_t adj) {
     StatTracker table_tracker;
 
     using mp = boost::multiprecision::cpp_int;
@@ -150,22 +155,28 @@ public:
     int64_t idx = residue.convert_to<int64_t>();
 
     auto rankings = sub_tables_rankings(idx);
-    // iterate column major until dot(q, x) > c is found.
+    // iterate column major though rankings until dot(q, x) > c is found.
     // look through adj other buckets. Should be the top ranked ones.
+    // probes the best bucket of each table first.
     for (size_t col = 0; col < adj; ++col) {
-      for (size_t t = 0; t < rankings.size(); ++t) {
-        auto found = tables[t].look_in(rankings[t][col], q, c);
-        table_tracker += std::get<2>(found); // add partition's stats to total
-        if (std::get<0>(found)) {
-          return std::make_tuple(std::get<0>(found), std::get<1>(found),
-                                 table_tracker);
+      for (size_t t = 0; t < tables.size(); ++t) {
+
+        std::pair<std::optional<KV>, StatTracker> found =
+            tables.at(t).look_in(rankings[t][col], q, c);
+        table_tracker += found.second; // add partition's stats to total
+        if (found.first) {
+          // probed t partitions before value was found.
+          table_tracker.k_partitions_probed(t);
+          return std::make_pair(found.first.value(), table_tracker);
         }
       }
     }
-    return std::make_tuple(false, KV(), table_tracker);
+    // If nothing found, it looked through the top adj buckets.
+    table_tracker.k_partitions_probed(rankings.size());
+    return std::make_pair(std::nullopt, table_tracker);
   }
 
-  std::tuple<bool, std::vector<KV>, StatTracker>
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe_approx(int64_t k, const Vect &q, Component c) {
     if (k < 0) {
       throw std::runtime_error(
@@ -186,24 +197,28 @@ public:
         auto found =
             tables[t].look_in_until(rankings[t][col], q, c, k - vects.size());
 
-        table_tracker += std::get<2>(found); // add partitions' stats together
-        if (std::get<0>(found)) {
+        table_tracker += found.second; // add partitions' stats together
+
+        if (found.first) {
           // append vects from bucket to the ones already found.
-          std::vector<KV> from_bucket = std::get<1>(found);
+          std::vector<KV> from_bucket = found.first.value();
           vects.insert(vects.end(), from_bucket.begin(), from_bucket.end());
         }
         if (vects.size() == static_cast<size_t>(k)) {
           // look_in_until stops when it finds k - vects.size things, so
           // checking for equality is safe.
           // if k things found, return success immediately.
-          return std::make_tuple(true, vects, table_tracker);
+          return std::make_pair(vects, table_tracker);
         }
       }
     }
     // if everything was searched, and at least one thing was found, return
     // success, if everything was searched and nothing was found, then the
     // search failed.
-    return std::make_tuple(vects.size() != 0, vects, table_tracker);
+    if (vects.size() == 0) {
+      return std::make_pair(std::optional<std::vector<KV>>{}, table_tracker);
+    }
+    return std::make_pair(vects, table_tracker);
   }
 
   void print_stats() {

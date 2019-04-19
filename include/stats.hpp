@@ -81,11 +81,24 @@ Sub mode(const Cont<Sub> &c) {
   // It first finds the frequency of all elements.
   // assumes Cont::value_type is integral.
   static_assert(std::is_integral<Sub>::value);
-
   std::vector<int64_t> hist = histogram(c);
   auto iter_of_most_freq = std::max_element(hist.begin(), hist.end());
   size_t most_freq = std::distance(hist.begin(), iter_of_most_freq);
   return most_freq;
+}
+
+template <template <typename Sub> typename Cont, typename Sub>
+Cont<Sub> nonzero(const Cont<Sub> &c) {
+  // returns all nonzero elements of the input container.
+  // only works for containers that contain numbers.
+  static_assert(std::is_arithmetic<Sub>::value);
+  Cont<Sub> nonzero_elements;
+  for (auto &elem : c) {
+    if (elem != 0) {
+      nonzero_elements.push_back(elem);
+    }
+  }
+  return nonzero_elements;
 }
 
 } // namespace stats

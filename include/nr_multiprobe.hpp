@@ -1,8 +1,9 @@
 
 #pragma once
 
-#include <gsl/gsl>
+#include <iostream>
 #include <limits>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -43,31 +44,36 @@ public:
     }
   }
 
-  std::pair<bool, KV> probe(const Vect &q, int64_t n_to_probe) {
+  std::optional<KV> probe(const Vect &q, int64_t n_to_probe) {
     // searches through the first n_to_probe most likely buckets
     // stat tracker isn't needed for this because it searches all the buckets.
     for (auto &probe_table : probe_tables) {
-      std::pair<bool, KV> out = probe_table.probe(q, n_to_probe);
-      if (out.first) {
+      std::optional<KV> out = probe_table.probe(q, n_to_probe);
+      if (out) {
         return out;
       }
     }
-    return std::make_pair(false, KV());
+    return {};
   }
 
-  std::tuple<bool, KV, StatTracker> probe_approx(const Vect &q, Component c,
-                                                 int64_t adj) {
+  std::pair<std::optional<KV>, StatTracker>
+  probe_approx(const Vect &q, Component c, int64_t adj) {
     // searches until it finds some x with dot(x, q) > c
+    StatTracker tracker;
+
     for (auto &probe_table : probe_tables) {
-      auto triple = probe_table.probe_approx(q, c, adj);
-      if (std::get<0>(triple)) {
-        return triple;
+      tracker.incr_tables_probed();
+      std::pair<std::optional<KV>, StatTracker> p =
+          probe_table.probe_approx(q, c, adj);
+      tracker += p.second;
+      if (p.first) {
+        return std::make_pair(p.first.value(), tracker);
       }
     }
-    return std::make_tuple(false, KV(), StatTracker());
+    return std::make_pair(std::nullopt, tracker);
   }
 
-  std::tuple<bool, std::vector<KV>, StatTracker>
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe_approx(int64_t k, const Vect &q, double c) {
     // searches until it finds k vectors, x where all x have dot(x, q) > c
     // return probe_table.k_probe_approx(k, q, c);

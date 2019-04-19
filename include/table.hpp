@@ -88,7 +88,7 @@ public:
     return std::make_pair(true, max);
   }
 
-  std::pair<bool, KV> probe(const Vect &q, int64_t n_to_probe) {
+  std::optional<KV> probe(const Vect &q, int64_t n_to_probe) {
     using mp = boost::multiprecision::cpp_int;
     mp mp_hash = hash(q);
     mp residue = mp_hash % table.size();
@@ -108,9 +108,9 @@ public:
       }
     }
     if (max.second < 0) { // no large inner products were found.
-      return std::make_pair(false, KV());
+      return {};
     }
-    return std::make_pair(true, max);
+    return max;
   }
 
   double sim(int64_t idx, int64_t other) const {
@@ -138,20 +138,23 @@ public:
     return rank;
   }
 
-  std::tuple<bool, KV, StatTracker> look_in(int64_t bucket, const Vect &q,
-                                            double c) {
+  std::pair<std::optional<KV>, StatTracker> look_in(int64_t bucket,
+                                                    const Vect &q, double c) {
     // returns first vector x of this bucket with dot(q, x) > c
     StatTracker partition_tracker;
+
+    partition_tracker.incr_buckets_probed();
+
     for (auto it = table[bucket].begin(); it != table[bucket].end(); ++it) {
       partition_tracker.incr_comparisons();
       if (q.dot((*it).first) > c) {
-        return std::make_tuple(true, *it, partition_tracker);
+        return std::make_pair(*it, partition_tracker);
       }
     }
-    return std::make_tuple(false, KV(), partition_tracker);
+    return std::make_pair(std::nullopt, partition_tracker);
   }
 
-  std::tuple<bool, std::vector<KV>, StatTracker>
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
   look_in_until(int64_t bucket, const Vect &q, double c, size_t limit) {
     // searches this bucket until it finds <limit> vectors x where dot(q, x) > c
     // or it reaches the end of the bucket. It returns success as long as at
@@ -165,12 +168,15 @@ public:
       }
       if (successful.size() == limit) {
         // if limit vectors were found, the search can stop early
-        return std::make_tuple(true, successful, partition_tracker);
+        return std::make_pair(successful, partition_tracker);
       }
     }
     // return true if at least one vector was found. False otherwise
-    return std::make_tuple(successful.size() > 0, successful,
-                           partition_tracker);
+    if (successful.size() == 0) {
+      return std::make_pair(std::optional<std::vector<KV>>{},
+                            partition_tracker);
+    }
+    return std::make_pair(successful, partition_tracker);
   }
 
   void print_stats() {

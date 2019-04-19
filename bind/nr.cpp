@@ -5,8 +5,8 @@
 #include <pybind11/stl.h>
 #include <vector>
 
-#include "../include/NR_multiprobe.hpp"
-#include "../include/NR_multitable.hpp"
+#include "../include/nr_multiprobe.hpp"
+#include "../include/nr_multitable.hpp"
 
 namespace py = pybind11;
 using namespace nr;
@@ -14,10 +14,18 @@ using namespace Eigen;
 
 PYBIND11_MODULE(nr_binding, m) {
 
+  py::class_<Tracked>(m, "Tracked")
+      .def(py::init<size_t, size_t, size_t, size_t>())
+      .def_readonly("comps", &Tracked::comparisons)
+      .def_readonly("bucks", &Tracked::buckets_probed)
+      .def_readonly("parts", &Tracked::partitions_probed)
+      .def_readonly("tables", &Tracked::tables_probed);
+
   // binding for StatTracker so Python users have access to it!
   py::class_<StatTracker>(m, "StatTracker")
       .def(py::init<>())
-      .def("get_stats", &StatTracker::get_stats);
+      .def("get_stats", &StatTracker::get_stats)
+      .def("tracked_stats", &StatTracker::tracked_stats);
 
   // double tables.
   py::class_<NR_MultiTable<VectorXd>>(m, "MultiTableDouble")

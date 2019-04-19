@@ -82,3 +82,11 @@ TEST_CASE("mode", "stats") {
                      100, 1,  0,  4,  4,  12, 9, 12, 8, 7, 6, 5};
   REQUIRE(nr::stats::mode(c) == 12);
 }
+
+TEST_CASE("nonzero", "stats") {
+  std::vector<int> a{1, 2, -3, 4, 0};
+  REQUIRE(nr::stats::nonzero(a) == std::vector<int>{1, 2, -3, 4});
+
+  std::vector<float> b{1.0, .001, 0, -0, -.001};
+  REQUIRE(nr::stats::nonzero(b) == std::vector<float>{1.0, .001, -.001});
+}
