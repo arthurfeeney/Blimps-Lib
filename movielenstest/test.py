@@ -7,20 +7,41 @@ import scipy.sparse
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import svds
 
+num_movies = 10681
+num_reviewers = 71567
+
+
+def precision(actual, expected):
+    '''
+    returns the fraction of the vectors found by the NR-tables that are 
+    are actually in the topk largest inner products. 
+    '''
+    intersect = [a for a in actual if a in expected]
+    return len(intersect) / len(expected)
+
 
 def main():
-    num_movies = 10681
-    num_reviewers = 71567
+    u, vt = load_movielens_files()
+    n = create_tables(vt, num_tables=4, num_partitions=256, bits=32, dim=150)
+    dots = u.dot(vt)
+    real_topk = find_real_topk(dots, k=5)
+    print(dots[0][real_topk[0]])
+    do_other(u, n)
 
+
+def load_movielens_files():
+    '''
+    loads the mocites lens rating and movies files. 
+    computes the SVD of user-review matrix. user-review = u*s*v.T
+    Returns u*s and s.T
+    '''
     ratings_file = open('ml-10m/ml-10M100K/ratings.dat', 'r')
-
     ratings_line = ratings_file.readlines()
-
     ratings = [line.split('::') for line in ratings_line]
     ratings = [tuple(map(float, r[:-1])) for r in ratings]
 
     data = [r[2] for r in ratings]
-    # users and moves are 1-indexed, so subtract 1.
+    # users and moves are 1-indexed in the file, so subtract 1.
     user_id = [int(r[0]) - 1 for r in ratings]
     movie_id = np.array([int(r[1]) - 1 for r in ratings])
 
@@ -40,6 +61,7 @@ def main():
     # map an id to a movie
     id_to_movie = dict([(int(m[0]) - 1, [m[1], m[2]]) for m in movies])
 
+    # large sparse matrix.
     review_matrix_csr = csr_matrix((data, (user_id, movie_id)),
                                    shape=(num_reviewers, num_movies))
 
@@ -47,29 +69,35 @@ def main():
 
     u = csr_matrix.dot(u, s)
 
-    #
-    # Setup the probing tables!
-    #
+    return u, vt
 
-    num_tables = 20
 
-    num_partitions = 256
+def create_tables(vt, num_tables, num_partitions, bits, dim):
+    '''
+    simple function to create the tables. 
+    '''
+    # more partitions = less items per partition, so number of buckets
+    # should be fewer.
     num_buckets = int(10000 / num_partitions)
-
     n = nr.multiprobe(num_tables,
                       num_partitions,
-                      bits=32,
-                      dim=150,
+                      bits=bits,
+                      dim=dim,
                       num_buckets=num_buckets)
-
-    print(num_reviewers)
-    print(num_movies)
-    print(vt.shape)
-
     n.fill(vt.transpose(), False)
-
     n.stats()
+    return n
 
+
+def find_real_topk(dots, k=1):
+    # finds the topk values in each row of dots.
+    real_topk = []
+    for user in range(dots.shape[0]):
+        real_topk.append(dots[user].argsort()[-k:])
+    return real_topk
+
+
+def do_other(us, n):
     num_comps = 0
     num_bucks = 0
     num_parts = 0
@@ -81,11 +109,11 @@ def main():
         if (i + 1) % 1000 == 0:
             break
 
-        # make queries unit length
-        user = u[i] / np.linalg.norm(u[i])
+        # make query unit length
+        user = us[i] / np.linalg.norm(us[i])
 
         end = time.time()
-        p, stat_tracker = n.probe_approx(user, .1, 10)
+        p, stat_tracker = n.probe_approx(user, .1, 3)
         end = time.time() - end
         #print(end)
 
@@ -98,15 +126,15 @@ def main():
             num_parts += tracked.parts
             num_tables += tracked.tables
             successful_count += 1
-            v, idx = p
-            id = idx_to_id[idx]
-            movie = id_to_movie[id]
-            print(p is not None, movie)
+            for v, idx in p:
+                id = idx_to_id[idx]
+                movie = id_to_movie[id]
+                print(p is not None, movie)
 
     print(' * Average Comps: ' + str(num_comps / successful_count))
     print(' * Average Puckets Probed: ' + str(num_bucks / successful_count))
     print(' * Average Parts Probed: ' + str(num_parts / successful_count))
-    print(' * Average Tables Probed: ' + str(num_tables / sucessful_count))
+    print(' * Average Tables Probed: ' + str(num_tables / successful_count))
     '''
     success, (q, index) = n.probe_approx(user, .005)
 

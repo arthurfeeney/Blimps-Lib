@@ -74,10 +74,26 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_approx(int64_t k, const Vect &q, double c) {
+  k_probe_approx(int64_t k, const Vect &q, double c, size_t adj) {
     // searches until it finds k vectors, x where all x have dot(x, q) > c
     // return probe_table.k_probe_approx(k, q, c);
-    return probe_tables.at(0).k_probe_approx(k, q, c);
+
+    StatTracker tracker;
+
+    std::vector<KV> vects(0);
+    for (auto &probe_table : probe_tables) {
+      auto found = probe_table.k_probe_approx(k - vects.size(), q, c, adj);
+      tracker += found.second;
+      if (found.first) {
+        std::vector<KV> v = found.first.value();
+        vects.insert(vects.end(), v.begin(), v.end());
+      }
+    }
+
+    if (vects.size() == 0) {
+      std::make_pair(std::nullopt, tracker);
+    }
+    return std::make_pair(vects, tracker);
   }
 
   KV find_max_inner(const Vect &q) {

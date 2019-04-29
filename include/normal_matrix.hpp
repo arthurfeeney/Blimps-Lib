@@ -27,6 +27,12 @@ public:
       }
     }
   }
+
+  template <typename Vect> void fill_vector(Vect &A) {
+    for (int c = 0; c < A.size(); ++c) {
+      A(c) = d(gen);
+    }
+  }
 };
 
 } // namespace nr

@@ -73,14 +73,6 @@ public:
     /*
      * Search partitions in each table for exact MIP with q.
      */
-    /*
-    std::vector<KV> x(0);
-    for (auto t : tables) {
-      std::pair<bool, KV> xj = t.MIPS(q);
-      if (xj.first) {
-        x.push_back(xj.second);
-      }
-    }*/
 
     // tracks the tables that successfuly found a MIP
     std::vector<bool> success(tables.size(), false);
@@ -177,7 +169,7 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_approx(int64_t k, const Vect &q, Component c) {
+  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
     if (k < 0) {
       throw std::runtime_error(
           "tables::k_probe_approx. k must be non-negative");
@@ -191,7 +183,7 @@ public:
 
     auto rankings = sub_tables_rankings(idx);
     std::vector<KV> vects(0);
-    for (size_t col = 0; col < num_buckets; ++col) {
+    for (size_t col = 0; col < adj; ++col) {
       for (size_t t = 0; t < rankings.size(); ++t) {
 
         auto found =

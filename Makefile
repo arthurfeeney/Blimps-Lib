@@ -21,3 +21,6 @@ CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp 
 catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp  
 	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o $(CASES) && ./test/test --success
+
+synth:
+	g++ -std=c++17 $(OMP) $(EIGEN) -o synthetic/synth.o synthetic/synth.cpp

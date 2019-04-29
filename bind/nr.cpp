@@ -14,6 +14,7 @@ using namespace Eigen;
 
 PYBIND11_MODULE(nr_binding, m) {
 
+  // Utility class to allow users to stats.comparisons.
   py::class_<Tracked>(m, "Tracked")
       .def(py::init<size_t, size_t, size_t, size_t>())
       .def_readonly("comps", &Tracked::comparisons)

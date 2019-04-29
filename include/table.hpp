@@ -41,12 +41,13 @@ public:
     for (size_t i = 0; i < indices.size(); ++i) {
       KV to_insert = std::make_pair(normalized_partition.at(i), ids.at(i));
 
+      // modulo done in index builder. Don't need to repeat it.
       size_t bucket_idx = indices.at(i);
 
       if (is_normalized) {
-        // use % to make sure all indices in range.
         table.at(bucket_idx).push_back(to_insert);
       } else {
+        // this UN-normalizes before inserting.
         KV fix_to_insert =
             std::make_pair(to_insert.first * Up, to_insert.second);
         table.at(bucket_idx).push_back(fix_to_insert);
