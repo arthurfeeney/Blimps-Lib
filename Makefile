@@ -23,4 +23,5 @@ catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o $(CASES) && ./test/test --success
 
 synth:
-	g++ -std=c++17 $(OMP) $(EIGEN) -o synthetic/synth.o synthetic/synth.cpp
+	g++ -std=c++17 $(OMP) $(EIGEN) -o synthetic/synth.o synthetic/synth.cpp;
+	./synthetic/synth.o

@@ -55,7 +55,8 @@ public:
     // safe even though there is a push_back.
     for (size_t p = 0; p < parts.size(); ++p) {
       for (size_t i = 0; i < parts.at(p).size(); ++i) {
-        parted_data.at(p).push_back(data.at(parts.at(p).at(i)));
+        // parted_data.at(p).push_back(data.at(parts.at(p).at(i)));
+        parted_data.at(p).push_back(normal_data.at(p).at(i));
       }
     }
 
@@ -78,7 +79,6 @@ public:
     std::vector<bool> success(tables.size(), false);
     std::vector<KV> check(tables.size());
 
-#pragma omp parallel for
     for (size_t idx = 0; idx < tables.size(); ++idx) {
       std::pair<bool, KV> check_j = tables.at(idx).MIPS(q);
       if (check_j.first) {

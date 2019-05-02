@@ -3,6 +3,7 @@
 
 #include <Eigen/Core>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <cmath>
 
 #include "../include/simple_lsh.hpp"
 
@@ -36,7 +37,7 @@ TEST_CASE("P() - pre-processing function correct", "simple_lsh") {
   REQUIRE(output(0) == input(0));
   REQUIRE(output(1) == input(1));
   REQUIRE(output(2) == input(2));
-  REQUIRE(output(3) == std::sqrt(1 - input.norm()));
+  REQUIRE(output(3) == Approx(std::sqrt(1 - std::pow(input.norm(), 2))));
 }
 
 TEST_CASE("numerals to bits", "simple_lsh") {
@@ -74,4 +75,23 @@ TEST_CASE("many bit hash", "simple_lsh") {
   mp res = idx % 5;
   int out = res.convert_to<int>();
   REQUIRE(out < 5);
+}
+
+TEST_CASE("P(x) should be unit length, 2-dim", "simple_lsh") {
+  nr::SimpleLSH<float> hash(32, 2);
+
+  Eigen::VectorXf a(2);
+  Eigen::VectorXf b(2);
+  Eigen::VectorXf c(2);
+
+  a << .3, .3;
+  b << .1, -.1;
+  c << -.5, -.2;
+
+  auto append1 = hash.P(a);
+  auto append2 = hash.P(b);
+  auto append3 = hash.P(c);
+  REQUIRE(append1.norm() == Approx(1));
+  REQUIRE(append2.norm() == Approx(1));
+  REQUIRE(append3.norm() == Approx(1));
 }

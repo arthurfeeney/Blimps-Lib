@@ -38,9 +38,10 @@ template <typename Cont> double stdev(const Cont &c) {
   return std::sqrt(variance(c));
 }
 
-template <typename Cont> typename Cont::value_type median(Cont c) {
+template <typename Cont> double median(Cont c) {
   // don't need to sort(?), but c shouldn't be too large anyway.
   // so the time shouldn't be too bad.
+  // returns double for when there are an even numer of elements.
 
   if (c.size() == 0) {
     // median of empty container is undefined
@@ -51,7 +52,7 @@ template <typename Cont> typename Cont::value_type median(Cont c) {
 
   if (c.size() % 2 == 0) {
     // if there's an even number, take average of middle two.
-    return (c[c.size() / 2 - 1] + c[c.size() / 2]) / 2;
+    return static_cast<float>(c[c.size() / 2 - 1] + c[c.size() / 2]) / 2.0;
   } else {
     return c[c.size() / 2];
   }

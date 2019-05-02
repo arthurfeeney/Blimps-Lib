@@ -43,11 +43,14 @@ TEST_CASE("median", "stats") {
   std::vector<int> a{1, 2, 3};
   REQUIRE(nr::stats::median(a) == 2);
 
-  std::vector<double> b{2.0, 1.3, -420, 11, 99};
-  REQUIRE(nr::stats::median(b) - 2.0 < 1e-5);
+  std::vector<int> b{1, 2, 3, 4};
+  REQUIRE(nr::stats::median(b) == 2.5);
 
-  std::vector<double> c{2.0, 1.3, -420, 11, 99, 2.5};
-  REQUIRE(nr::stats::median(c) - 2.25 < 1e-5);
+  std::vector<double> c{2.0, 1.3, -420, 11, 99};
+  REQUIRE(nr::stats::median(c) - 2.0 < 1e-5);
+
+  std::vector<double> d{2.0, 1.3, -420, 11, 99, 2.5};
+  REQUIRE(nr::stats::median(d) - 2.25 < 1e-5);
 }
 
 TEST_CASE("histogram", "stats") {

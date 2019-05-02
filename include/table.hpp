@@ -201,6 +201,7 @@ public:
     auto var = stats::variance(bucket_sizes);
     auto stdev = std::sqrt(var);
 
+    std::cout << "Bucket Stats" << '\n';
     std::cout << "\tmean:       " << stats::mean(bucket_sizes) << '\n';
     std::cout << "\tmax:        " << max << '\n';
     std::cout << "\tmax bucket: " << most_content - bucket_sizes.begin()
@@ -211,6 +212,14 @@ public:
     std::cout << "\tmedian:     " << stats::median(bucket_sizes) << '\n';
     std::cout << "\tempty:      " << num_empty_buckets << '\n';
     std::cout << "\tnon-empty:  " << num_buckets - num_empty_buckets << '\n';
+
+    std::vector<size_t> non_empty_sizes = stats::nonzero(bucket_sizes);
+
+    std::cout << "Non-empty Buckets" << '\n';
+    std::cout << "\tmean:       " << stats::mean(non_empty_sizes) << '\n';
+    std::cout << "\tvar:        " << stats::variance(non_empty_sizes) << '\n';
+    std::cout << "\tstdev       " << stats::stdev(non_empty_sizes) << '\n';
+    std::cout << "\tmedian:     " << stats::median(non_empty_sizes) << '\n';
   }
 
   const std::list<KV> &at(int idx) const {

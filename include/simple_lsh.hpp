@@ -3,6 +3,7 @@
 
 #include <Eigen/Core>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <cmath>
 #include <random>
 #include <type_traits>
 
@@ -56,7 +57,7 @@ public:
       std::cout << norm << '\n';
       throw std::logic_error("SimpleLSH::P, Cannot take sqrt of negative");
     }
-    append << input, std::sqrt(1 - norm); // append sqrt to input.
+    append << input, std::sqrt(1 - std::pow(norm, 2)); // append sqrt to input.
     return append;
   }
 

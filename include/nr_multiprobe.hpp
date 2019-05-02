@@ -63,8 +63,7 @@ public:
 
     for (auto &probe_table : probe_tables) {
       tracker.incr_tables_probed();
-      std::pair<std::optional<KV>, StatTracker> p =
-          probe_table.probe_approx(q, c, adj);
+      auto p = probe_table.probe_approx(q, c, adj);
       tracker += p.second;
       if (p.first) {
         return std::make_pair(p.first.value(), tracker);
