@@ -1,5 +1,5 @@
 
-FLAGS = -std=c++17 -O3 -shared
+FLAGS = -std=c++17
 EIGEN = -I/home/afeeney/cpplibs/Eigen/
 PYBIND11 = -I/home/afeeney/cpplibs/pybind11/
 GSL = -I/home/afeeney/cpplibs/GSL/include/
@@ -9,7 +9,7 @@ FILE = bind/nr.cpp
 OMP = -fopenmp
 
 binding:
-	g++ $(FLAGS) $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) $(FILE) $(OUT);
+	g++ $(FLAGS) -O3 -shared $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) $(FILE) $(OUT);
 	cp bind/nr_* movielenstest/
 
 clean:
@@ -23,5 +23,5 @@ catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o $(CASES) && ./test/test --success
 
 synth:
-	g++ -std=c++17 $(OMP) $(EIGEN) -o synthetic/synth.o synthetic/synth.cpp;
+	g++ -std=c++17 -O3 $(OMP) $(EIGEN) -o synthetic/synth.o synthetic/synth.cpp;
 	./synthetic/synth.o

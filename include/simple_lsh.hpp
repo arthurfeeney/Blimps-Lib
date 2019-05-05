@@ -34,6 +34,7 @@ public:
     NormalMatrix<Component> nm;
     nm.fill_matrix(a);
     fill_bit_mask();
+    std::cout << "hash norm: " << a.norm() << '\n';
   }
 
   int64_t bit_count() const { return bits; }
@@ -49,12 +50,11 @@ public:
 
   std::vector<mp::cpp_int> get_bit_mask() const { return bit_mask; }
 
-  Vect P(Vect input) const {
+  Vect P(const Vect &input) const {
     // symmetric transform that appends sqrt(1 - ||input||) to input
     Vect append(dim + 1);
     Component norm = input.norm();
     if (norm - 1 > .001) {
-      std::cout << norm << '\n';
       throw std::logic_error("SimpleLSH::P, Cannot take sqrt of negative");
     }
     append << input, std::sqrt(1 - std::pow(norm, 2)); // append sqrt to input.
@@ -82,7 +82,9 @@ public:
     return sum;
   }
 
-  mp::cpp_int operator()(Vect input) const {
+  mp::cpp_int operator()(const Vect &input) const { return hash(input); }
+
+  mp::cpp_int hash(const Vect &input) const {
     // with a large number of hashes, it can become larger than 64 bit.
     // have to use multiprecision.
     Vect simple = P(input);

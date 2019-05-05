@@ -28,8 +28,11 @@ private:
 public:
   NR_MultiProbe(int64_t num_tables, int64_t num_partitions, int64_t bits,
                 int64_t dim, size_t num_buckets)
-      : probe_tables(num_tables,
-                     Tables<Vect>(num_partitions, bits, dim, num_buckets)) {}
+      : probe_tables(num_tables) {
+    for (auto &probe_table : probe_tables) {
+      probe_table = Tables<Vect>(num_partitions, bits, dim, num_buckets);
+    }
+  }
 
   template <typename Cont> void fill(const Cont &data, bool is_normalized) {
     // if is_normalized is true, then the data input to the table is
@@ -72,6 +75,28 @@ public:
     return std::make_pair(std::nullopt, tracker);
   }
 
+  static typename std::vector<KV>::const_iterator
+  find_value(const std::vector<KV> &vects, int64_t value) {
+    for (auto iter = vects.begin(); iter != vects.end(); ++iter) {
+      if ((*iter).second == value) {
+        return iter;
+      }
+    }
+    return vects.end();
+  }
+
+  static void insert_kv(std::vector<KV> &vects,
+                        const std::vector<KV> &to_insert) {
+    // inserts only key-value pairs with unique values.
+    // modifies in-place.
+    for (auto &kv : to_insert) {
+      if (find_value(vects, kv.second) == vects.end()) {
+        // v is not in vects.
+        vects.push_back(kv);
+      }
+    }
+  }
+
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe_approx(int64_t k, const Vect &q, double c, size_t adj) {
     // searches until it finds k vectors, x where all x have dot(x, q) > c
@@ -81,11 +106,13 @@ public:
 
     std::vector<KV> vects(0);
     for (auto &probe_table : probe_tables) {
-      auto found = probe_table.k_probe_approx(k - vects.size(), q, c, adj);
-      tracker += found.second;
-      if (found.first) {
-        std::vector<KV> v = found.first.value();
-        vects.insert(vects.end(), v.begin(), v.end());
+      if (k - vects.size() > 0) {
+        auto found = probe_table.k_probe_approx(k - vects.size(), q, c, adj);
+        tracker += found.second;
+        if (found.first) {
+          std::vector<KV> v = found.first.value();
+          insert_kv(vects, v);
+        }
       }
     }
 
@@ -113,6 +140,6 @@ public:
   }
 
   size_t num_tables() const { return probe_tables.size(); }
-};
+}; // namespace nr
 
 } // namespace nr

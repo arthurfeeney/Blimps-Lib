@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "../include/nr_multiprobe.hpp"
-#include "../include/nr_multitable.hpp"
 
 namespace py = pybind11;
 using namespace nr;
@@ -29,11 +28,6 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("tracked_stats", &StatTracker::tracked_stats);
 
   // double tables.
-  py::class_<NR_MultiTable<VectorXd>>(m, "MultiTableDouble")
-      .def(py::init<int64_t, int64_t, int64_t, int64_t>())
-      .def("fill", &NR_MultiTable<VectorXd>::fill<std::vector<VectorXd>>)
-      .def("MIPS", &NR_MultiTable<VectorXd>::MIPS);
-
   py::class_<NR_MultiProbe<VectorXd>>(m, "MultiProbeDouble")
       .def(py::init<int64_t, int64_t, int64_t, int64_t, int64_t>())
       .def("fill", &NR_MultiProbe<VectorXd>::fill<std::vector<VectorXd>>)
@@ -44,11 +38,6 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("stats", &NR_MultiProbe<VectorXd>::print_stats);
 
   // float tables.
-  py::class_<NR_MultiTable<VectorXf>>(m, "MultiTableFloat")
-      .def(py::init<int64_t, int64_t, int64_t, int64_t>())
-      .def("fill", &NR_MultiTable<VectorXf>::fill<std::vector<VectorXf>>)
-      .def("MIPS", &NR_MultiTable<VectorXf>::MIPS);
-
   py::class_<NR_MultiProbe<VectorXf>>(m, "MultiProbeFloat")
       .def(py::init<int64_t, int64_t, int64_t, int64_t, int64_t>())
       .def("fill", &NR_MultiProbe<VectorXf>::fill<std::vector<VectorXf>>)

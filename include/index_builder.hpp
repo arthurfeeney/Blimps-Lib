@@ -142,7 +142,7 @@ simple_LSH_partitions(const PartCont &partitioned_dataset,
     for (size_t p_idx = 0; p_idx < partitioned_dataset.at(j).size(); ++p_idx) {
       mp::cpp_int mp_hash = hash(partitioned_dataset.at(j).at(p_idx));
       mp::cpp_int residue = mp_hash % num_buckets;
-      std::cout << mp_hash << '\n';
+      // std::cout << mp_hash << '\n';
       int64_t idx = residue.convert_to<int64_t>();
       indices.at(j).at(p_idx) = idx;
     }

@@ -31,12 +31,31 @@ private:
   std::vector<Component> normalizers;
 
 public:
-  Tables() : num_partitions(0), hash(0, 0), num_buckets(0) {}
+  Tables() : hash(0, 0) {}
 
   Tables(int64_t num_partitions, int64_t bits, int64_t dim, size_t num_buckets)
       : num_partitions(num_partitions), num_buckets(num_buckets),
         hash(bits, dim),
-        tables(num_partitions, Table<Vect>(hash, num_buckets)) {}
+        tables(num_partitions, Table<Vect>(hash, num_buckets)) {
+    std::cout << "hash dim: " << hash.dimension();
+  }
+
+  Tables(Tables &&other) {
+    num_partitions = other.num_partitions;
+    num_buckets = other.num_buckets;
+    hash = other.hash;
+    tables = other.tables;
+    normalizers = other.normalizers;
+  }
+
+  Tables &operator=(Tables &&other) {
+    num_partitions = other.num_partitions;
+    num_buckets = other.num_buckets;
+    hash = other.hash;
+    tables = other.tables;
+    normalizers = other.normalizers;
+    return *this;
+  }
 
   template <typename Cont> void fill(const Cont &data, bool is_normalized) {
     /*
@@ -61,10 +80,10 @@ public:
     }
 
     for (size_t p = 0; p < tables.size(); ++p) {
-      for (auto idx : indices.at(p)) {
+      /*for (auto idx : indices.at(p)) {
         std::cout << idx << ' ';
       }
-      std::cout << '\n';
+      std::cout << '\n';*/
       tables.at(p).fill(parted_data.at(p), indices.at(p), parts.at(p),
                         normalizers.at(p), is_normalized);
     }
