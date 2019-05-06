@@ -46,4 +46,4 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("k_probe_approx", &NR_MultiProbe<VectorXf>::k_probe_approx)
       .def("find_max_inner", &NR_MultiProbe<VectorXf>::find_max_inner)
       .def("stats", &NR_MultiProbe<VectorXf>::print_stats);
-};
+}

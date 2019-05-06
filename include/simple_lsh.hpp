@@ -43,7 +43,7 @@ public:
 
   void fill_bit_mask() {
     // fill this->bit_mask with powers of 2.
-    for (size_t i = 0; i < bits; ++i) {
+    for (size_t i = 0; i < static_cast<size_t>(bits); ++i) {
       bit_mask.at(i) = mp::pow(mp::cpp_int(2), i);
     }
   }
@@ -73,7 +73,7 @@ public:
   mp::cpp_int bits_to_num(const Vect &bits) const {
     // convert a string of bits to an integer.
     mp::cpp_int sum = 0;
-    for (size_t i = 0; i < bits.size(); ++i) {
+    for (Eigen::Index i = 0; i < bits.size(); ++i) {
       mp::cpp_int bit = bits(i) - 1 >= 0 ? 1 : 0;
       mp::cpp_int val = 0;
       val = mp::multiply(val, bit, bit_mask.at(i));

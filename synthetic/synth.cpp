@@ -1,5 +1,6 @@
 
 #include <Eigen/Core>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <utility>
@@ -32,6 +33,7 @@ int main() {
    */
 
   std::cout << std::setprecision(2) << std::fixed;
+  std::cout << '\n';
 
   std::vector<size_t> comp_list(0);
   for (VectorXf &query : queries) {
@@ -41,12 +43,17 @@ int main() {
 
     // probe a constant number of buckets.
     // returns large IP found in buckets searched
+    auto start = std::chrono::high_resolution_clock::now();
     auto found = probe.probe(query, 1000);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     if (found) {
       auto kv = found.value();
       auto mip = kv.first;
       std::cout << mip.dot(query) << ' ';
     }
+    std::cout << duration.count() << "ms \t";
 
     // probe constant number of buckets until a MIP > constant is found
     auto op_and_tracker = probe.probe_approx(query, 3, 200);
@@ -56,10 +63,11 @@ int main() {
     if (op) {
       auto kv = op.value();
       VectorXf mip = kv.first;
-      std::cout << mip.dot(query) << ' ';
+      std::cout << mip.dot(query);
     } else {
-      std::cout << "    " << ' '; // 4 spaces for blank.
+      std::cout << "    "; // 4 spaces for blank.
     }
+    std::cout << '\t';
 
     auto max = probe.find_max_inner(query);
     std::cout << max.first.dot(query) << ' ';
@@ -73,9 +81,14 @@ int main() {
     comp_list.push_back(tr.comparisons);
 
     // probe constant number of buckets until 5 MIP > constant are found.
+    start = std::chrono::high_resolution_clock::now();
     auto topk_and_tracker = probe.k_probe_approx(5, query, 3, 200);
+    end = std::chrono::high_resolution_clock::now();
+    duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     auto opt_topk = topk_and_tracker.first;
 
+    std::cout << duration.count() << "ms" << ' ';
     if (opt_topk) {
       for (auto &kv : opt_topk.value()) {
         std::cout << kv.first.dot(query) << ' ';

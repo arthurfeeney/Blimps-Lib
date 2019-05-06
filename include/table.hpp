@@ -56,17 +56,17 @@ public:
     normalizer = Up;
   }
 
-  size_t first_non_empty_bucket() const {
+  int64_t first_non_empty_bucket() const {
     for (size_t bucket = 0; bucket < num_buckets; ++bucket) {
       if (table.at(bucket).size() > 0) {
-        return bucket;
+        return static_cast<int64_t>(bucket);
       }
     }
     return -1;
   }
 
   std::pair<bool, KV> MIPS(const Vect &q) const {
-    size_t start_bucket = first_non_empty_bucket();
+    int64_t start_bucket = first_non_empty_bucket();
     if (start_bucket == -1) {
       /*
        * it is required that data.size() > num partitions, so

@@ -169,7 +169,7 @@ public:
     // iterate column major though rankings until dot(q, x) > c is found.
     // look through adj other buckets. Should be the top ranked ones.
     // probes the best bucket of each table first.
-    for (size_t col = 0; col < adj; ++col) {
+    for (int64_t col = 0; col < adj; ++col) {
       for (size_t t = 0; t < tables.size(); ++t) {
 
         std::pair<std::optional<KV>, StatTracker> found =
