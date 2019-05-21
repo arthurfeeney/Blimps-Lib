@@ -15,7 +15,7 @@
 
 #include "simple_lsh.hpp"
 #include "stat_tracker.hpp"
-#include "stats.hpp"
+#include "stats/stats.hpp"
 
 namespace nr {
 
@@ -89,11 +89,19 @@ public:
     return std::make_pair(true, max);
   }
 
-  std::optional<KV> probe(const Vect &q, int64_t n_to_probe) {
+  std::pair<std::optional<KV>, StatTracker> probe(const Vect &q,
+                                                  int64_t n_to_probe) const {
+    /*
+     * Searches through the best n_to_probe buckets, ranked by sim,
+     * returning the KV pair that results in
+     * the largest inner product with the query point.
+     * */
     using mp = boost::multiprecision::cpp_int;
     mp mp_hash = hash(q);
     mp residue = mp_hash % table.size();
     int64_t idx = residue.convert_to<int64_t>();
+
+    StatTracker partition_tracker;
 
     std::vector<int64_t> rank = probe_ranking(idx);
     // initialize to impossible values
@@ -102,6 +110,7 @@ public:
     for (int64_t r = 0; r < n_to_probe; ++r) {
       for (const auto &current : table.at(rank.at(r))) {
         double dot = q.dot(current.first);
+        partition_tracker.incr_comparisons();
         if (dot > big_dot) {
           big_dot = dot;
           max = current;
@@ -109,9 +118,20 @@ public:
       }
     }
     if (max.second < 0) { // no large inner products were found.
-      return {};
+      return std::make_pair(std::nullopt, partition_tracker);
     }
-    return max;
+    return std::make_pair(max, partition_tracker);
+  }
+
+  short popcount(int64_t n) const {
+    // replacement for __builtin_popcount available in gcc.
+    // returns short because there aren't many digits.
+    short count = 0;
+    while (n) {
+      count += n & 1; // adds 1 if bit is positive.
+      n >>= 1;        // shift right 1.
+    }
+    return count;
   }
 
   double sim(int64_t idx, int64_t other) const {
@@ -121,11 +141,11 @@ public:
      * sort of similar inputs result in an output closer to zero.
      */
     constexpr double PI = 3.141592653589;
-    constexpr double e = 0.001;
-    double l = static_cast<double>(__builtin_popcount(idx & other));
+    constexpr double e = 1e-8;
+    double l = static_cast<double>(popcount(idx & other));
     double L = static_cast<double>(hash.bit_count());
 
-    return normalizer * std::cos(PI * (1.0 - e) * (1 - (l / L)));
+    return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));
   }
 
   std::vector<int64_t> probe_ranking(int64_t idx) const {
@@ -139,8 +159,8 @@ public:
     return rank;
   }
 
-  std::pair<std::optional<KV>, StatTracker> look_in(int64_t bucket,
-                                                    const Vect &q, double c) {
+  std::pair<std::optional<KV>, StatTracker>
+  look_in(int64_t bucket, const Vect &q, double c) const {
     // returns first vector x of this bucket with dot(q, x) > c
     StatTracker partition_tracker;
 
@@ -156,7 +176,7 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  look_in_until(int64_t bucket, const Vect &q, double c, size_t limit) {
+  look_in_until(int64_t bucket, const Vect &q, double c, size_t limit) const {
     // searches this bucket until it finds <limit> vectors x where dot(q, x) > c
     // or it reaches the end of the bucket. It returns success as long as at
     // least one such x is found.

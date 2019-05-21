@@ -5,7 +5,7 @@
 #include <list>
 #include <vector>
 
-#include "../include/stats.hpp"
+#include "../include/stats/stats.hpp"
 
 TEST_CASE("mean", "stats") {
   std::vector<int> a{1, 2, 3};
@@ -92,4 +92,24 @@ TEST_CASE("nonzero", "stats") {
 
   std::vector<float> b{1.0, .001, 0, -0, -.001};
   REQUIRE(nr::stats::nonzero(b) == std::vector<float>{1.0, .001, -.001});
+}
+
+TEST_CASE("topk", "stats") {
+  std::vector<int> a{1, 2, 3, 4, 5};
+  REQUIRE(nr::stats::topk(3, a).first == std::vector{3, 4, 5});
+  REQUIRE(nr::stats::topk(3, a).second == std::vector<size_t>{2, 3, 4});
+
+  std::vector<size_t> b{5, 600, 1, 0, 100, 20, 6, 99, 420};
+  auto t1 = nr::stats::topk(1, b);
+  auto t3 = nr::stats::topk(3, b);
+  auto t5 = nr::stats::topk(5, b);
+
+  REQUIRE(t1.first == std::vector<size_t>{600});
+  REQUIRE(t1.second == std::vector<size_t>{1});
+
+  REQUIRE(t3.first == std::vector<size_t>{100, 420, 600});
+  REQUIRE(t3.second == std::vector<size_t>{4, 8, 1});
+
+  REQUIRE(t5.first == std::vector<size_t>{20, 99, 100, 420, 600});
+  REQUIRE(t5.second == std::vector<size_t>{5, 7, 4, 8, 1});
 }

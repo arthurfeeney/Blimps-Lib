@@ -7,12 +7,14 @@
 
 #include "../include/nr_lsh.hpp"
 #include "../include/stat_tracker.hpp"
-#include "../include/stats.hpp"
+#include "../include/stats/stats.hpp"
 
 using namespace Eigen;
 
 std::vector<VectorXf> gen_data(size_t num, size_t dim);
 VectorXf exact_MIPS(VectorXf query, const std::vector<VectorXf> &data);
+std::vector<VectorXf> k_exact_MIPS(VectorXf query,
+                                   const std::vector<VectorXf> &data);
 
 int main() {
 
@@ -24,12 +26,11 @@ int main() {
   std::vector<VectorXf> queries = gen_data(100, 40);
 
   // probe(num_tables, num_partitions, bits, dim, num_buckets)
-  nr::NR_MultiProbe<VectorXf> probe(20, 1, 32, 40, 15000);
+  nr::NR_MultiProbe<VectorXf> probe(1, 1, 64, 40, 15000);
   probe.fill(data, false);
 
   /*
    * Perform MIPS in a variety of ways
-   *
    */
 
   std::cout << std::setprecision(2) << std::fixed;
@@ -44,12 +45,14 @@ int main() {
     // probe a constant number of buckets.
     // returns large IP found in buckets searched
     auto start = std::chrono::high_resolution_clock::now();
-    auto found = probe.probe(query, 1000);
+    auto found = probe.probe(query, 2000);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    if (found) {
-      auto kv = found.value();
+    nr::Tracked probe_tracker = found.second.tracked_stats();
+    std::cout << probe_tracker.comparisons << ' ';
+    if (found.first) {
+      auto kv = found.first.value();
       auto mip = kv.first;
       std::cout << mip.dot(query) << ' ';
     }
@@ -105,12 +108,12 @@ int main() {
 }
 
 std::vector<VectorXf> gen_data(size_t num, size_t dim) {
-  // Random is uniform [-1,1].
   std::vector<VectorXf> data(num, VectorXf(dim));
   nr::NormalMatrix<float> nm;
   for (auto &datum : data) {
-    nm.fill_vector(datum); // changed in-place
+    nm.fill_vector(datum); // datum is changed in-place
   }
+  // vectors get normalized during insertion, before hashing.
   return data;
 }
 
@@ -125,4 +128,24 @@ VectorXf exact_MIPS(VectorXf query, const std::vector<VectorXf> &data) {
     }
   }
   return max_found;
+}
+
+std::vector<VectorXf> k_exact_MIPS(size_t k, VectorXf query,
+                                   const std::vector<VectorXf> &data) {
+  std::vector<float> prods(data.size());
+
+  // compute all inner products
+  for (size_t i = 0; i < data.size(); ++i) {
+    prods.at(i) = query.dot(data.at(i));
+  }
+
+  auto tk = nr::stats::topk(k, prods);
+  std::vector<size_t> indices = tk.second;
+
+  std::vector<VectorXf> topk_vects(indices.size());
+  for (size_t i = 0; i < indices.size(); ++i) {
+    topk_vects.at(i) = data.at(indices.at(i));
+  }
+
+  return topk_vects;
 }

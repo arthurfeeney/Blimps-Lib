@@ -9,7 +9,7 @@
 
 #include "simple_lsh.hpp"
 #include "stat_tracker.hpp"
-#include "stats.hpp"
+#include "stats/stats.hpp"
 #include "tables.hpp"
 
 /*
@@ -47,16 +47,22 @@ public:
     }
   }
 
-  std::optional<KV> probe(const Vect &q, int64_t n_to_probe) {
+  std::pair<std::optional<KV>, StatTracker> probe(const Vect &q,
+                                                  int64_t n_to_probe) {
     // searches through the first n_to_probe most likely buckets
     // stat tracker isn't needed for this because it searches all the buckets.
+
+    StatTracker tracker;
+
     for (auto &probe_table : probe_tables) {
-      std::optional<KV> out = probe_table.probe(q, n_to_probe);
+      auto p = probe_table.probe(q, n_to_probe);
+      std::optional<KV> out = p.first;
+      tracker += p.second;
       if (out) {
-        return out;
+        return std::make_pair(out, tracker);
       }
     }
-    return {};
+    return std::make_pair(std::nullopt, tracker);
   }
 
   std::pair<std::optional<KV>, StatTracker>

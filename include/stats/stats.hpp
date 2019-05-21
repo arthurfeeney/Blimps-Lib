@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <type_traits>
@@ -10,8 +12,11 @@
 /*
  * Implementations of some simple statistics that are not provided
  * by the standard library (and (without spending too long...) I couldn't
- * find a header-only lib that implemented them...)
+ * find a header-only lib that implemented them.)
  */
+
+// include more complicated functions
+#include "topk.hpp"
 
 namespace nr {
 namespace stats {
@@ -26,6 +31,9 @@ template <typename Cont> double mean(const Cont &c) {
 }
 
 template <typename Cont> double variance(const Cont &c) {
+  if (c.size() == 0) {
+    throw std::logic_error("cannot compute variance of empty container");
+  }
   double m = mean(c);
   double s = std::accumulate(c.begin(), c.end(), 0.0, [m](auto x, auto y) {
     return x + std::pow(y - m, 2);

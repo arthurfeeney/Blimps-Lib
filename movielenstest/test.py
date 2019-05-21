@@ -21,12 +21,12 @@ def precision(actual, expected):
 
 
 def main():
-    u, vt = load_movielens_files()
-    n = create_tables(vt, num_tables=4, num_partitions=256, bits=32, dim=150)
+    u, vt, idx_to_id, id_to_movie = load_movielens_files()
+    n = create_tables(vt, num_tables=4, num_partitions=1, bits=64, dim=150)
     dots = u.dot(vt)
     real_topk = find_real_topk(dots, k=5)
     print(dots[0][real_topk[0]])
-    do_other(u, n)
+    do_other(u, n, idx_to_id, id_to_movie)
 
 
 def load_movielens_files():
@@ -69,7 +69,7 @@ def load_movielens_files():
 
     u = csr_matrix.dot(u, s)
 
-    return u, vt
+    return u, vt, idx_to_id, id_to_movie
 
 
 def create_tables(vt, num_tables, num_partitions, bits, dim):
@@ -78,7 +78,7 @@ def create_tables(vt, num_tables, num_partitions, bits, dim):
     '''
     # more partitions = less items per partition, so number of buckets
     # should be fewer.
-    num_buckets = int(10000 / num_partitions)
+    num_buckets = int(12000 / num_partitions)
     n = nr.multiprobe(num_tables,
                       num_partitions,
                       bits=bits,
@@ -97,7 +97,7 @@ def find_real_topk(dots, k=1):
     return real_topk
 
 
-def do_other(us, n):
+def do_other(us, n, idx_to_id, id_to_movie):
     num_comps = 0
     num_bucks = 0
     num_parts = 0
@@ -113,7 +113,7 @@ def do_other(us, n):
         user = us[i] / np.linalg.norm(us[i])
 
         end = time.time()
-        p, stat_tracker = n.probe_approx(user, .1, 3)
+        p, stat_tracker = n.k_probe_approx(5, user, 1, 1000)
         end = time.time() - end
         #print(end)
 

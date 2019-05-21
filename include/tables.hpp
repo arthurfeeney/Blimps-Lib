@@ -126,11 +126,20 @@ public:
         }));
   }
 
-  std::optional<KV> probe(const Vect &q, int64_t n_to_probe) {
+  std::pair<std::optional<KV>, StatTracker> probe(const Vect &q,
+                                                  int64_t n_to_probe) const {
     std::vector<KV> x(0);
 
+    StatTracker table_tracker;
+
     for (auto it = tables.begin(); it != tables.end(); ++it) {
-      std::optional<KV> xj = (*it).probe(q, n_to_probe);
+      // std::optional<KV> xj = (*it).probe(q, n_to_probe);
+      auto found = (*it).probe(q, n_to_probe);
+      std::optional<KV> xj = found.first;
+
+      table_tracker += found.second;
+      table_tracker.incr_partitions_probed();
+
       if (xj) {
         x.push_back(xj.value());
       }
@@ -142,13 +151,13 @@ public:
 
     // if x.size() == 0, nothing was found so it should return nothing
     if (x.size() != 0) {
-      return ret;
+      return std::make_pair(ret, table_tracker);
     } else {
-      return {};
+      return std::make_pair(std::nullopt, table_tracker);
     }
   }
 
-  std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx) {
+  std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx) const {
     std::vector<std::vector<int64_t>> rankings(tables.size());
     for (size_t i = 0; i < tables.size(); ++i) {
       rankings.at(i) = tables.at(i).probe_ranking(idx);
@@ -157,7 +166,7 @@ public:
   }
 
   std::pair<std::optional<KV>, StatTracker>
-  probe_approx(const Vect &q, Component c, int64_t adj) {
+  probe_approx(const Vect &q, Component c, int64_t adj) const {
     StatTracker table_tracker;
 
     using mp = boost::multiprecision::cpp_int;
@@ -188,7 +197,7 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
+  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) const {
     if (k < 0) {
       throw std::runtime_error(
           "tables::k_probe_approx. k must be non-negative");
