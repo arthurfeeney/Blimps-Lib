@@ -7,31 +7,28 @@ import scipy.sparse
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import svds
 
+import perf_eval as pe
+
 num_movies = 10681
 num_reviewers = 71567
 
 
-def precision(actual, expected):
-    '''
-    returns the fraction of the vectors found by the NR-tables that are 
-    are actually in the topk largest inner products. 
-    '''
-    intersect = [a for a in actual if a in expected]
-    return len(intersect) / len(expected)
-
-
 def main():
-    u, vt, idx_to_id, id_to_movie = load_movielens_files()
+    u, vt, idx_to_id, id_to_movie, review_matrix_csr = load_movielens_files()
     n = create_tables(vt, num_tables=4, num_partitions=1, bits=64, dim=150)
+    print(vt.shape)
     dots = u.dot(vt)
     real_topk = find_real_topk(dots, k=5)
     print(dots[0][real_topk[0]])
-    do_other(u, n, idx_to_id, id_to_movie)
+
+    pe.random_item_ranked_list(3, 0, review_matrix_csr, u, vt)
+
+    #do_other(u, n, idx_to_id, id_to_movie)
 
 
 def load_movielens_files():
     '''
-    loads the mocites lens rating and movies files. 
+    loads the mocites lens rating and movies files.
     computes the SVD of user-review matrix. user-review = u*s*v.T
     Returns u*s and s.T
     '''
@@ -69,12 +66,12 @@ def load_movielens_files():
 
     u = csr_matrix.dot(u, s)
 
-    return u, vt, idx_to_id, id_to_movie
+    return u, vt, idx_to_id, id_to_movie, review_matrix_csr
 
 
 def create_tables(vt, num_tables, num_partitions, bits, dim):
     '''
-    simple function to create the tables. 
+    simple function to create the tables.
     '''
     # more partitions = less items per partition, so number of buckets
     # should be fewer.

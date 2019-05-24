@@ -43,7 +43,7 @@ int main() {
     query /= query.norm();
 
     // probe a constant number of buckets.
-    // returns large IP found in buckets searched
+    // returns largest IP found in buckets searched
     auto start = std::chrono::high_resolution_clock::now();
     auto found = probe.probe(query, 2000);
     auto end = std::chrono::high_resolution_clock::now();
