@@ -11,22 +11,43 @@ import perf_eval as pe
 
 num_movies = 10681
 num_reviewers = 71567
-
+factors = 50
 
 def main():
-    u, vt, idx_to_id, id_to_movie, review_matrix_csr = load_movielens_files()
-    n = create_tables(vt, num_tables=4, num_partitions=1, bits=64, dim=150)
-    print(vt.shape)
-    dots = u.dot(vt)
-    real_topk = find_real_topk(dots, k=5)
-    print(dots[0][real_topk[0]])
 
-    pe.random_item_ranked_list(3, 0, review_matrix_csr, u, vt)
+    u, vt, idx_to_id, id_to_movie, review_matrix_csr = load_movielens_files(factors)
+    #n = create_tables(vt, num_tables=4, num_partitions=1, bits=64, dim=factors)
+    #print(vt.shape)
+    #dots = u.dot(vt)
+    #real_topk = find_real_topk(dots, k=5)
+    #print(dots[0][real_topk[0]])
 
+    user_ratings = review_matrix_csr[0].toarray()[0]
+
+    five_star_indices = pe.find_five_rating(user_ratings)
+
+    user_factors = u[0]
+
+
+    #
+    # AVERAGE recall of users.
+    # not recall across whole dataset.
+    # I believe they are distinct.
+    #
+
+    system_rec = 0
+    num_users = 40
+    for user in range(num_users):
+        user_ratings = review_matrix_csr[user].toarray()[0]
+        five_star_indices = pe.find_five_rating(user_ratings)
+        user_factors = u[user]
+        system_rec += pe.user_recall(1000, 1, user_ratings, user_factors,
+                                         item_factors=vt)
+    print(system_rec / num_users)
     #do_other(u, n, idx_to_id, id_to_movie)
 
 
-def load_movielens_files():
+def load_movielens_files(factors):
     '''
     loads the mocites lens rating and movies files.
     computes the SVD of user-review matrix. user-review = u*s*v.T
@@ -62,7 +83,7 @@ def load_movielens_files():
     review_matrix_csr = csr_matrix((data, (user_id, movie_id)),
                                    shape=(num_reviewers, num_movies))
 
-    u, s, vt = svds(review_matrix_csr, k=150)
+    u, s, vt = svds(review_matrix_csr, k=factors)
 
     u = csr_matrix.dot(u, s)
 
