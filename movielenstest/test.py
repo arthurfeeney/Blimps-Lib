@@ -2,6 +2,7 @@ import nr_lsh as nr
 import numpy as np
 import time
 import pandas
+import matplotlib.pyplot as plt
 
 import scipy.sparse
 from scipy.sparse import csr_matrix
@@ -15,79 +16,89 @@ factors = 50
 
 def main():
 
-    u, vt, idx_to_id, id_to_movie, review_matrix_csr = load_movielens_files(factors)
+    #u, vt, idx_to_id, id_to_movie, review_matrix_csr = load_movielens_files(factors)
     #n = create_tables(vt, num_tables=4, num_partitions=1, bits=64, dim=factors)
     #print(vt.shape)
     #dots = u.dot(vt)
     #real_topk = find_real_topk(dots, k=5)
     #print(dots[0][real_topk[0]])
 
-    user_ratings = review_matrix_csr[0].toarray()[0]
-
-    five_star_indices = pe.find_five_rating(user_ratings)
-
-    user_factors = u[0]
-
-
     #
-    # AVERAGE recall of users.
+    # AVERAGE recall across all users.
     # not recall across whole dataset.
-    # I believe they are distinct.
+    # They should be different, but basically show the same info.
     #
 
+    train, test = load_split_set(factors, 'ratings.dat')
+    u, vt, review_matrix_csr = df_to_matrix(train)
+
+    #set2 = load_split_set(50, 'r1.test')
+    #_, vt, review_matrix_csr = df_to_matrix(set2)
+
+    test = [tuple(i) for i in test[['userid', 'movieidx', 'rating']].values]
+
+    rec = []
+    limit = 21
+    for N in range(1, limit):
+        rec.append(pe.recall(1000, N, test,
+                  item_factors=vt.transpose(),
+                  review_matrix_csr=review_matrix_csr))
+        print(rec)
+    plt.plot(range(1, limit), rec)
+    plt.xlabel('N')
+    plt.ylabel('Recall(N)')
+    plt.show()
+
+    '''
     system_rec = 0
-    num_users = 40
+    num_users = 80
     for user in range(num_users):
         user_ratings = review_matrix_csr[user].toarray()[0]
         five_star_indices = pe.find_five_rating(user_ratings)
         user_factors = u[user]
-        system_rec += pe.user_recall(1000, 1, user_ratings, user_factors,
+        system_rec += pe.user_recall(1000, 10, user_ratings, user_factors,
                                          item_factors=vt)
     print(system_rec / num_users)
+    '''
     #do_other(u, n, idx_to_id, id_to_movie)
 
+def load_split_set(factors, file_name, path='ml-10m/ml-10M100K/'):
+    ratings = pandas.read_csv(path + file_name,
+                              sep='::',
+                              engine='python',
+                              names=['userid', 'movieid', 'rating', 'time'])
 
-def load_movielens_files(factors):
-    '''
-    loads the mocites lens rating and movies files.
-    computes the SVD of user-review matrix. user-review = u*s*v.T
-    Returns u*s and s.T
-    '''
-    ratings_file = open('ml-10m/ml-10M100K/ratings.dat', 'r')
-    ratings_line = ratings_file.readlines()
-    ratings = [line.split('::') for line in ratings_line]
-    ratings = [tuple(map(float, r[:-1])) for r in ratings]
+    movies = pandas.read_csv(path + 'movies.dat',
+                             sep='::',
+                             engine='python',
+                             names=['movieid', 'title', 'genres'])
+    movies.insert(0, 'movieidx', range(0, len(movies)))
 
-    data = [r[2] for r in ratings]
-    # users and moves are 1-indexed in the file, so subtract 1.
-    user_id = [int(r[0]) - 1 for r in ratings]
-    movie_id = np.array([int(r[1]) - 1 for r in ratings])
+    df = ratings.join(movies.set_index('movieid'), on='movieid')
 
-    movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
-    movies_line = movies_file.readlines()
-    movies = [line.split('::') for line in movies_line]
+    #train = df.sample(frac=0.986, random_state=200)
+    train = df.sample(frac=0.986, random_state=200)
+    probe = df.drop(train.index) # random subsamle of 1.4% of the dataset.
+    test = probe[probe['rating']==5] # test set is all 5 star ratings in probe set.
+    return train, test
 
-    movie_id_list = [int(m[0]) - 1 for m in movies]
-    movie_indices = range(num_movies)
+def df_to_matrix(df):
+    #
+    # fill sparse matrix with ratings from a dataframe.
+    # matr[userid][movieid] = rating.
+    #
+    ratings = df['rating'].tolist()
+    # subtract 1 to map id to index
+    users = [id-1 for id in df['userid'].tolist()]
+    movies = [id for id in df['movieidx'].tolist()]
 
-    id_to_idx = dict(zip(movie_id_list, movie_indices))
-    idx_to_id = dict(zip(movie_indices, movie_id_list))
-
-    # make the movie ids their indices in the file.
-    movie_id = [id_to_idx[m] for m in movie_id]
-
-    # map an id to a movie
-    id_to_movie = dict([(int(m[0]) - 1, [m[1], m[2]]) for m in movies])
-
-    # large sparse matrix.
-    review_matrix_csr = csr_matrix((data, (user_id, movie_id)),
-                                   shape=(num_reviewers, num_movies))
-
+    review_matrix_csr = csr_matrix((ratings, (users, movies)),
+                                   shape=(num_reviewers, num_movies+1))
     u, s, vt = svds(review_matrix_csr, k=factors)
+    user_factors = csr_matrix.dot(u, s)
+    item_factors = vt
+    return user_factors, item_factors, review_matrix_csr
 
-    u = csr_matrix.dot(u, s)
-
-    return u, vt, idx_to_id, id_to_movie, review_matrix_csr
 
 
 def create_tables(vt, num_tables, num_partitions, bits, dim):

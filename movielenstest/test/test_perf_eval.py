@@ -38,12 +38,42 @@ def test_random_item_ranked_list():
         [.2, .2],
     ]).transpose()
     (five_rating, others) = pe.random_item_ranked_list(k, user_ratings, five_star_idx, user_factors, item_factors)
-    assert five_rating == 0.0
-    assert others[0] == user_factors.dot(item_factors[:,3])
-    assert others[1] == user_factors.dot(item_factors[:,1])
+    assert five_rating == user_ratings.dot(item_factors.transpose()).dot(item_factors[:,2])
+
 
 def test_hit():
-    # input list should be in sorted, ascending order for it to work properly. 
+    # input list should be in sorted, ascending order for it to work properly.
     assert pe.hit(3, 5.1, [1, 2, 3, 4, 5, 6])
     assert pe.hit(2, 5.1, [1, 2, 3, 4, 5, 6])
     assert not pe.hit(1, 5.1, [1, 2, 3, 4, 5, 6])
+    assert not pe.hit(2, 4.1, [1, 2, 3, 4, 5, 6])
+
+def test_user_recall():
+    k = 4
+    factors = 4
+    user_ratings = np.array([
+        [0, 0, 0, 0, 0, 5],
+        [3, 5, 2, 5, 2, 3],
+        [3, 3, 2, 0, 2, 0],
+        [5, 0, 0, 0, 2, 1],
+        [3, 5, 0, 5, 0, 2]
+    ])
+    u, s, vt = np.linalg.svd(user_ratings, full_matrices=True)
+    u, s, vt = u[:,:factors], s[:factors], vt[:factors]
+    user_factors = u * s
+    item_factors = vt
+
+    assert pe.find_five_rating(user_ratings[0]) == [5]
+    assert pe.find_five_rating(user_ratings[1]) == [1, 3]
+    assert pe.find_five_rating(user_ratings[2]) == []
+    assert pe.find_five_rating(user_ratings[3]) == [0]
+    assert pe.find_five_rating(user_ratings[4]) == [1, 3]
+
+    # multiple trials since get_k_unrated gets a random subset.
+    for trial in range(20):
+        for elem in pe.get_k_unrated(4, user_ratings[0]):
+            assert elem in [0,1,2,3,4]
+
+
+
+    assert pe.user_recall(k, 1, user_ratings[0], user_factors[0,:], item_factors) == 1
