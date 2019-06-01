@@ -16,20 +16,7 @@ factors = 50
 
 def main():
 
-    #u, vt, idx_to_id, id_to_movie, review_matrix_csr = load_movielens_files(factors)
-    #n = create_tables(vt, num_tables=4, num_partitions=1, bits=64, dim=factors)
-    #print(vt.shape)
-    #dots = u.dot(vt)
-    #real_topk = find_real_topk(dots, k=5)
-    #print(dots[0][real_topk[0]])
-
-    #
-    # AVERAGE recall across all users.
-    # not recall across whole dataset.
-    # They should be different, but basically show the same info.
-    #
-
-    train, test = load_split_set(factors, 'ratings.dat')
+    train, test, mean_rating = load_split_set(factors, 'ratings.dat')
     u, vt, review_matrix_csr = df_to_matrix(train)
 
     #set2 = load_split_set(50, 'r1.test')
@@ -38,35 +25,47 @@ def main():
     test = [tuple(i) for i in test[['userid', 'movieidx', 'rating']].values]
 
     rec = []
+    prec = []
     limit = 21
     for N in range(1, limit):
         rec.append(pe.recall(1000, N, test,
                   item_factors=vt.transpose(),
-                  review_matrix_csr=review_matrix_csr))
+                  review_matrix_csr=review_matrix_csr,
+                  mean_rating=mean_rating))
         print(rec)
+        prec.append(rec[N-1] / N)
+
+    #
+    # Display Recall at N
+    #
+
     plt.plot(range(1, limit), rec)
     plt.xlabel('N')
     plt.ylabel('Recall(N)')
+    plt.xticks([0, 5,10,15,20])
+    plt.yticks(np.arange(0, 1.1, step=0.1))
     plt.show()
 
-    '''
-    system_rec = 0
-    num_users = 80
-    for user in range(num_users):
-        user_ratings = review_matrix_csr[user].toarray()[0]
-        five_star_indices = pe.find_five_rating(user_ratings)
-        user_factors = u[user]
-        system_rec += pe.user_recall(1000, 10, user_ratings, user_factors,
-                                         item_factors=vt)
-    print(system_rec / num_users)
-    '''
-    #do_other(u, n, idx_to_id, id_to_movie)
+    #
+    # Display Precision vs Recall
+    #
+
+    plt.plot(rec, prec)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.xticks(np.arange(0, 1.1, step=0.2))
+    plt.show()
+
 
 def load_split_set(factors, file_name, path='ml-10m/ml-10M100K/'):
     ratings = pandas.read_csv(path + file_name,
                               sep='::',
                               engine='python',
                               names=['userid', 'movieid', 'rating', 'time'])
+    ratings['userid'] = ratings['userid'].subtract(1) # map to index
+
+    mean_rating = ratings['rating'].mean()
+    ratings['rating'] = ratings['rating'].subtract(mean_rating)
 
     movies = pandas.read_csv(path + 'movies.dat',
                              sep='::',
@@ -79,8 +78,8 @@ def load_split_set(factors, file_name, path='ml-10m/ml-10M100K/'):
     #train = df.sample(frac=0.986, random_state=200)
     train = df.sample(frac=0.986, random_state=200)
     probe = df.drop(train.index) # random subsamle of 1.4% of the dataset.
-    test = probe[probe['rating']==5] # test set is all 5 star ratings in probe set.
-    return train, test
+    test = probe[probe['rating'] == 5 - mean_rating] # test set is all 5 star ratings in probe set.
+    return train, test, mean_rating
 
 def df_to_matrix(df):
     #
@@ -89,7 +88,7 @@ def df_to_matrix(df):
     #
     ratings = df['rating'].tolist()
     # subtract 1 to map id to index
-    users = [id-1 for id in df['userid'].tolist()]
+    users = [id for id in df['userid'].tolist()]
     movies = [id for id in df['movieidx'].tolist()]
 
     review_matrix_csr = csr_matrix((ratings, (users, movies)),
@@ -98,8 +97,6 @@ def df_to_matrix(df):
     user_factors = csr_matrix.dot(u, s)
     item_factors = vt
     return user_factors, item_factors, review_matrix_csr
-
-
 
 def create_tables(vt, num_tables, num_partitions, bits, dim):
     '''
@@ -117,14 +114,12 @@ def create_tables(vt, num_tables, num_partitions, bits, dim):
     n.stats()
     return n
 
-
 def find_real_topk(dots, k=1):
     # finds the topk values in each row of dots.
     real_topk = []
     for user in range(dots.shape[0]):
         real_topk.append(dots[user].argsort()[-k:])
     return real_topk
-
 
 def do_other(us, n, idx_to_id, id_to_movie):
     num_comps = 0

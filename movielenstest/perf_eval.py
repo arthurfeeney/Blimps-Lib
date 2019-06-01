@@ -6,10 +6,10 @@ import numpy as np
 # are put in the top k of N additional, unrated movies.
 #
 
-def find_five_rating(user_ratings):
+def find_five_rating(user_ratings, mean_rating):
     # return the indices of all 5-star ratings.
     # user_ratings should be a list.
-    indices = [i for i in range(user_ratings.size) if user_ratings[i] == 5]
+    indices = [i for i in range(user_ratings.size) if user_ratings[i] == 5 - mean_rating]
     return indices
 
 def get_k_unrated(k, user_ratings):
@@ -33,13 +33,11 @@ def random_item_ranked_list(k, user_ratings, five_star_idx, user_factors, item_f
     return five_star_rating, ratings
 
 def hit(N, five_star_rating, ratings):
-    # if five_star_rating is in the top N ratings, we have a hit.
-    # ratings is in ascending order. So, they must be reversed.
-    for rating in ratings[::-1][:N]: # iterate though n largest.
-        if five_star_rating > rating:
-            # returning 1 makes it more clear that this is used in a sum
-            return 1
-    return 0
+    # if five_star_rating is larger than the smallest item in the top N,
+    # it is a hit
+    # if N=1, we want to check that the five_star_rating larger than the
+    # highest rating.
+    return five_star_rating > ratings[-N]
 
 def user_recall(k, N, user_ratings, user_factors, item_factors):
     # computes the precision for a single user.
@@ -61,13 +59,11 @@ def user_recall(k, N, user_ratings, user_factors, item_factors):
 def user_precision(k, N, user_ratings, user_factors, item_factors):
     return user_recall(k, N, user_ratings, user_factors, item_factors) / N
 
-
-
-def recall(k, N, test_ratings, item_factors, review_matrix_csr):
+def recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
     total_hits = 0
     for (useridx, movieidx, rating) in test_ratings:
-        assert rating == 5 # test ratings should only be 5.
-        user_ratings = review_matrix_csr[useridx-1].toarray()[0]
+        assert rating == 5 - mean_rating # test ratings should only be 5.
+        user_ratings = review_matrix_csr[useridx].toarray()[0]
         unrated_indices = get_k_unrated(k, user_ratings)
         unrated_item_factors = item_factors[unrated_indices] # column matrix
         ratings = user_ratings.dot(item_factors).dot(unrated_item_factors.transpose())
@@ -78,5 +74,5 @@ def recall(k, N, test_ratings, item_factors, review_matrix_csr):
         total_hits += hit(N, five_star_rating, ratings)
     return total_hits / len(test_ratings)
 
-def precision(k, N, test_ratings, item_factors, review_matrix_csr):
-    return recall(k, N, test_ratings, item_factors, review_matrix_csr) / N
+def precision(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
+    return recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating) / N
