@@ -42,10 +42,14 @@ def hit(N, five_star_rating, ratings):
     else:
         return [five_star_rating > ratings[-n] for n in N]
 
-def user_recall(k, N, user_ratings, user_factors, item_factors):
+#
+# Precision and Recall for the exact case:
+#
+
+def user_recall(k, N, user_ratings, user_factors, item_factors, mean_rating):
     # computes the precision for a single user.
     # checks if the system puts items rated 5 into the top k of N + 1 items.
-    five_star_indices = find_five_rating(user_ratings)
+    five_star_indices = find_five_rating(user_ratings, mean_rating)
 
     # if a user never gives something five stars, returning 1 effectively
     # "ignores" them.
@@ -59,8 +63,8 @@ def user_recall(k, N, user_ratings, user_factors, item_factors):
         total_hits += hit(N, fsr, ratings)
     return total_hits / len(five_star_indices)
 
-def user_precision(k, N, user_ratings, user_factors, item_factors):
-    return user_recall(k, N, user_ratings, user_factors, item_factors) / N
+def user_precision(k, N, user_ratings, user_factors, item_factors, mean_rating):
+    return user_recall(k, N, user_ratings, user_factors, item_factors, mean_rating) / N
 
 def recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
 
@@ -70,10 +74,10 @@ def recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
 
     total_hits = dict([(n, 0) for n in N])
     for (useridx, movieidx, rating) in test_ratings:
-        assert rating == 5 - mean_rating # test ratings should only be 5.
+        assert rating == 5 - mean_rating # all test ratings are 5 - mean
         user_ratings = review_matrix_csr[useridx].toarray()[0]
         unrated_indices = get_k_unrated(k, user_ratings)
-        unrated_item_factors = item_factors[unrated_indices] # column matrix
+        unrated_item_factors = item_factors[unrated_indices]
         ratings = user_ratings.dot(item_factors).dot(unrated_item_factors.transpose())
         five_star_rating = user_ratings\
             .dot(item_factors)\
@@ -107,3 +111,31 @@ def recall_and_precision(k, N, test_ratings, item_factors, review_matrix_csr, me
     rec = recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating)
     prec = dict([(key, rec[key] / key) for key in rec])
     return rec, prec
+
+#
+# Precision and Recall for MIPS.
+#
+def topk_inner(k, inner):
+    # compute the topk largest inner products.
+    indices = (-inner).argsort()[:k]
+    return inner[indices], indices
+
+def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean_rating):
+    total_hits = 0
+    for (useridx, movieidx, rating) in test_ratings:
+        assert rating == 5 - mean_rating
+        user_ratings = review_matrix_csr[useridx].toarray()[0]
+
+        # get the true topk.
+        true_topk, true_idx = topk_inner(1, user_ratings.dot(item_factors).dot(item_factors.transpose()))
+
+        # probe k from the nr table.
+        query = user_ratings.dot(item_factors)
+        query /= np.linalg.norm(query) # queries are unit vectors
+        data, tracker = nr_table.probe(query, 2000)
+        if data:
+            approx_topk, approx_idx = data
+            if approx_idx in true_idx:
+                total_hits += 1
+        print(total_hits)
+    return total_hits / len(test_ratings)

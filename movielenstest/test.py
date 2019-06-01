@@ -14,16 +14,14 @@ num_movies = 10681
 num_reviewers = 71567
 factors = 50
 
+
 def main():
 
     train, test, mean_rating = load_split_set(factors, 'ratings.dat')
     u, vt, review_matrix_csr = df_to_matrix(train)
 
-    #set2 = load_split_set(50, 'r1.test')
-    #_, vt, review_matrix_csr = df_to_matrix(set2)
-
     test = [tuple(i) for i in test[['userid', 'movieidx', 'rating']].values]
-
+    '''
     rec = pe.recall(1000, range(1, 6), test,
                     item_factors=vt.transpose(),
                     review_matrix_csr=review_matrix_csr,
@@ -40,12 +38,13 @@ def main():
     plt.plot(list(rec.keys()), list(rec.values()))
     plt.xlabel('N')
     plt.ylabel('Recall(N)')
-    plt.xticks([0, 5,10,15,20])
+    plt.xticks([0, 5, 10, 15, 20])
     plt.yticks(np.arange(0, 1.1, step=0.1))
     plt.show()
 
     #
     # Display Precision vs Recall
+    # Recall should approach 1.0 for this plot.
     #
 
     plt.plot(list(rec.values()), list(prec.values()))
@@ -53,15 +52,21 @@ def main():
     plt.ylabel('Precision')
     plt.xticks(np.arange(0, 1.1, step=0.2))
     plt.show()
-
+    '''
+    n = create_tables(vt, 2, 1, 32, 50)
+    mips_recall = pe.MIPS_recall(1, test, item_factors=vt.transpose(), nr_table=n,
+                                 review_matrix_csr=review_matrix_csr,
+                                 mean_rating=mean_rating)
+    print(mips_recall)
 
 def load_split_set(factors, file_name, path='ml-10m/ml-10M100K/'):
     ratings = pandas.read_csv(path + file_name,
                               sep='::',
                               engine='python',
                               names=['userid', 'movieid', 'rating', 'time'])
-    ratings['userid'] = ratings['userid'].subtract(1) # map to index
+    ratings['userid'] = ratings['userid'].subtract(1)  # map to index
 
+    # center ratings around the overall mean.
     mean_rating = ratings['rating'].mean()
     ratings['rating'] = ratings['rating'].subtract(mean_rating)
 
@@ -69,15 +74,19 @@ def load_split_set(factors, file_name, path='ml-10m/ml-10M100K/'):
                              sep='::',
                              engine='python',
                              names=['movieid', 'title', 'genres'])
+    # add column that tracks index in the movies.dat file.
     movies.insert(0, 'movieidx', range(0, len(movies)))
 
     df = ratings.join(movies.set_index('movieid'), on='movieid')
 
-    #train = df.sample(frac=0.986, random_state=200)
     train = df.sample(frac=0.986, random_state=200)
-    probe = df.drop(train.index) # random subsamle of 1.4% of the dataset.
-    test = probe[probe['rating'] == 5 - mean_rating] # test set is all 5 star ratings in probe set.
+    probe = df.drop(train.index)  # random subsamle of 1.4% of the dataset.
+
+    # test set is all 5 (minus the mean) star ratings in probe set.
+    test = probe[probe['rating'] == 5 - mean_rating]
+
     return train, test, mean_rating
+
 
 def df_to_matrix(df):
     #
@@ -90,11 +99,12 @@ def df_to_matrix(df):
     movies = [id for id in df['movieidx'].tolist()]
 
     review_matrix_csr = csr_matrix((ratings, (users, movies)),
-                                   shape=(num_reviewers, num_movies+1))
+                                   shape=(num_reviewers, num_movies + 1))
     u, s, vt = svds(review_matrix_csr, k=factors)
     user_factors = csr_matrix.dot(u, s)
     item_factors = vt
     return user_factors, item_factors, review_matrix_csr
+
 
 def create_tables(vt, num_tables, num_partitions, bits, dim):
     '''
@@ -112,12 +122,6 @@ def create_tables(vt, num_tables, num_partitions, bits, dim):
     n.stats()
     return n
 
-def find_real_topk(dots, k=1):
-    # finds the topk values in each row of dots.
-    real_topk = []
-    for user in range(dots.shape[0]):
-        real_topk.append(dots[user].argsort()[-k:])
-    return real_topk
 
 def do_other(us, n, idx_to_id, id_to_movie):
     num_comps = 0

@@ -8,11 +8,13 @@ import perf_eval as pe
 
 #class TestPerfEval(object):
 def test_simple_find_five_rating():
-    matr = np.array([[1,2,3,5],[5,0,0,1]])
-    indices = pe.find_five_rating(matr[0])
+    matr = np.array([[1,2,3,5],[5,0,0,1]], dtype=np.float64)
+    mean_rating = matr[matr != 0].mean()
+    matr[matr != 0] -= mean_rating
+    indices = pe.find_five_rating(matr[0], mean_rating)
     assert indices == [3]
 
-    indices = pe.find_five_rating(matr[1])
+    indices = pe.find_five_rating(matr[1], mean_rating)
     assert indices == [0]
 
 
@@ -57,17 +59,19 @@ def test_user_recall():
         [3, 3, 2, 0, 2, 0],
         [5, 0, 0, 0, 2, 1],
         [3, 5, 0, 5, 0, 2]
-    ])
+    ], dtype=np.float64)
     u, s, vt = np.linalg.svd(user_ratings, full_matrices=True)
     u, s, vt = u[:,:factors], s[:factors], vt[:factors]
     user_factors = u * s
     item_factors = vt
+    mean_rating = user_ratings[user_ratings != 0].mean()
+    user_ratings[user_ratings != 0] -= mean_rating
 
-    assert pe.find_five_rating(user_ratings[0]) == [5]
-    assert pe.find_five_rating(user_ratings[1]) == [1, 3]
-    assert pe.find_five_rating(user_ratings[2]) == []
-    assert pe.find_five_rating(user_ratings[3]) == [0]
-    assert pe.find_five_rating(user_ratings[4]) == [1, 3]
+    assert pe.find_five_rating(user_ratings[0], mean_rating) == [5]
+    assert pe.find_five_rating(user_ratings[1], mean_rating) == [1, 3]
+    assert pe.find_five_rating(user_ratings[2], mean_rating) == []
+    assert pe.find_five_rating(user_ratings[3], mean_rating) == [0]
+    assert pe.find_five_rating(user_ratings[4], mean_rating) == [1, 3]
 
     # multiple trials since get_k_unrated gets a random subset.
     for trial in range(20):
@@ -76,4 +80,9 @@ def test_user_recall():
 
 
 
-    assert pe.user_recall(k, 1, user_ratings[0], user_factors[0,:], item_factors) == 1
+    assert pe.user_recall(k, 1, user_ratings[0], user_factors[0,:], item_factors, mean_rating) == 1
+
+def test_topk_inner():
+    assert all(pe.topk_inner(2, np.array([1,4,3,2]))[0] == np.array([4, 3]))
+    assert all(pe.topk_inner(1, np.array([1,4,3,2]))[0] == np.array([4]))
+    assert all(pe.topk_inner(4, np.array([1,4,3,2,-3, 5.5, 6.2]))[0] == np.array([6.2, 5.5, 4, 3]))
