@@ -37,7 +37,10 @@ def hit(N, five_star_rating, ratings):
     # it is a hit
     # if N=1, we want to check that the five_star_rating larger than the
     # highest rating.
-    return five_star_rating > ratings[-N]
+    if isinstance(N, int):
+        return five_star_rating > ratings[-N]
+    else:
+        return [five_star_rating > ratings[-n] for n in N]
 
 def user_recall(k, N, user_ratings, user_factors, item_factors):
     # computes the precision for a single user.
@@ -60,7 +63,12 @@ def user_precision(k, N, user_ratings, user_factors, item_factors):
     return user_recall(k, N, user_ratings, user_factors, item_factors) / N
 
 def recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
-    total_hits = 0
+
+    # when N is an integral type, make it a list so it is iterable.
+    if isinstance(N, int):
+        N = [N]
+
+    total_hits = dict([(n, 0) for n in N])
     for (useridx, movieidx, rating) in test_ratings:
         assert rating == 5 - mean_rating # test ratings should only be 5.
         user_ratings = review_matrix_csr[useridx].toarray()[0]
@@ -71,8 +79,31 @@ def recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
             .dot(item_factors)\
             .dot(item_factors[int(movieidx)])
         ratings.sort()
-        total_hits += hit(N, five_star_rating, ratings)
-    return total_hits / len(test_ratings)
+
+        is_hit = hit(N, five_star_rating, ratings)
+        for (idx, n) in enumerate(N):
+            total_hits[n] += is_hit[idx]
+
+    for n in N:
+        total_hits[n] /= len(test_ratings)
+    return total_hits
+
 
 def precision(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
-    return recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating) / N
+    if isinstance(N, int):
+        # make N iterable if it is an int.
+        N = [N]
+    rec = recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating)
+    for key in rec:
+        rec[key] /= key
+    return rec
+
+def recall_and_precision(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating):
+    # dont have to compute recall and precision separately. This avoids some
+    # unnecessary computations.
+    if isinstance(N, int):
+        # make N iterable if it is an int.
+        N = [N]
+    rec = recall(k, N, test_ratings, item_factors, review_matrix_csr, mean_rating)
+    prec = dict([(key, rec[key] / key) for key in rec])
+    return rec, prec

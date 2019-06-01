@@ -24,22 +24,20 @@ def main():
 
     test = [tuple(i) for i in test[['userid', 'movieidx', 'rating']].values]
 
-    rec = []
-    prec = []
-    limit = 21
-    for N in range(1, limit):
-        rec.append(pe.recall(1000, N, test,
-                  item_factors=vt.transpose(),
-                  review_matrix_csr=review_matrix_csr,
-                  mean_rating=mean_rating))
-        print(rec)
-        prec.append(rec[N-1] / N)
+    rec = pe.recall(1000, range(1, 6), test,
+                    item_factors=vt.transpose(),
+                    review_matrix_csr=review_matrix_csr,
+                    mean_rating=mean_rating)
+    prec = pe.precision(1000, range(1, 6), test,
+                        item_factors=vt.transpose(),
+                        review_matrix_csr=review_matrix_csr,
+                        mean_rating=mean_rating)
 
     #
     # Display Recall at N
     #
 
-    plt.plot(range(1, limit), rec)
+    plt.plot(list(rec.keys()), list(rec.values()))
     plt.xlabel('N')
     plt.ylabel('Recall(N)')
     plt.xticks([0, 5,10,15,20])
@@ -50,7 +48,7 @@ def main():
     # Display Precision vs Recall
     #
 
-    plt.plot(rec, prec)
+    plt.plot(list(rec.values()), list(prec.values()))
     plt.xlabel('Recall')
     plt.ylabel('Precision')
     plt.xticks(np.arange(0, 1.1, step=0.2))
