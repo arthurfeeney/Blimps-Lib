@@ -136,24 +136,54 @@ public:
       // std::optional<KV> xj = (*it).probe(q, n_to_probe);
       auto found = (*it).probe(q, n_to_probe);
       std::optional<KV> xj = found.first;
-
       table_tracker += found.second;
       table_tracker.incr_partitions_probed();
-
       if (xj) {
         x.push_back(xj.value());
       }
     }
-
+    // if x.size() == 0, nothing was found, so nothing should be returned.
+    // this must happen before finding the max element.
+    if (x.size() == 0) {
+      return std::make_pair(std::nullopt, table_tracker);
+    }
     KV ret = *std::max_element(x.begin(), x.end(), [&](KV y, KV z) {
       return q.dot(y.first) < q.dot(z.first);
     });
+    return std::make_pair(ret, table_tracker);
+  }
 
-    // if x.size() == 0, nothing was found so it should return nothing
-    if (x.size() != 0) {
-      return std::make_pair(ret, table_tracker);
-    } else {
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  k_probe(int64_t k, const Vect &q, int64_t n_to_probe)  {
+    if (k < 0) {
+      throw std::runtime_error(
+          "tables::k_probe. k must be non-negative");
+    }
+    StatTracker table_tracker;
+
+    using mp = boost::multiprecision::cpp_int;
+    mp mp_hash = hash(q);
+    mp residue = mp_hash % num_buckets;
+    int64_t idx = residue.convert_to<int64_t>();
+    auto rankings = sub_tables_rankings(idx);
+
+    std::vector<KV> vects(0);
+    // look through the top n_to_probe ranked buckets.
+    for (size_t col = 0; col < static_cast<size_t>(n_to_probe); ++col) {
+      for (size_t t = 0; t < rankings.size(); ++t) {
+      
+        // k largest items in highly ranked bucket rankings[t][col].
+        auto found = tables[t].topk_in_bucket(k, rankings[t][col], q);
+        if(found.size() > 0) {
+          vects.insert(vects.end(), found.begin(), found.end());
+        }
+      }
+    }
+    if(vects.size() == 0) {
       return std::make_pair(std::nullopt, table_tracker);
+    }
+    else {
+      return std::make_pair(vects, table_tracker);
     }
   }
 

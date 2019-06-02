@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cmath>
+#include <iterator>
 #include <limits>
 #include <list>
 #include <map>
@@ -10,6 +11,7 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
+
 
 #include <iostream>
 
@@ -157,6 +159,29 @@ public:
               [&](int64_t x, int64_t y) { return sim(idx, x) > sim(idx, y); });
 
     return rank;
+  }
+
+  std::vector<KV>
+  topk_in_bucket(int64_t k, int64_t bucket, const Vect &q) const {
+    // return the kv-pairs that result in the largest inner products with q.
+    if(table.at(bucket).size() == 0) {
+      return {};
+    }
+    std::vector<typename Vect::value_type> inner(0);
+    for(auto& elem : table.at(bucket)) {
+      inner.push_back(elem.first.dot(q));
+    }
+
+    auto p = stats::topk(k, inner);
+    auto indices = p.second;
+
+    std::vector<KV> ret(indices.size());
+    for(size_t i = 0; i < indices.size(); ++i) {
+      auto bucket_iter = table.at(bucket).begin();
+      std::advance(bucket_iter, indices.at(i));
+      ret.at(i) = *bucket_iter;
+    }
+    return ret;
   }
 
   std::pair<std::optional<KV>, StatTracker>

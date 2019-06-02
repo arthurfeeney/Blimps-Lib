@@ -86,3 +86,4 @@ def test_topk_inner():
     assert all(pe.topk_inner(2, np.array([1,4,3,2]))[0] == np.array([4, 3]))
     assert all(pe.topk_inner(1, np.array([1,4,3,2]))[0] == np.array([4]))
     assert all(pe.topk_inner(4, np.array([1,4,3,2,-3, 5.5, 6.2]))[0] == np.array([6.2, 5.5, 4, 3]))
+    assert all(pe.topk_inner(2, np.array([3,1,2,4,0]))[1] == np.array([3,0]))

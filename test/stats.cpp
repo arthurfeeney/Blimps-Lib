@@ -99,6 +99,9 @@ TEST_CASE("topk", "stats") {
   REQUIRE(nr::stats::topk(3, a).first == std::vector{3, 4, 5});
   REQUIRE(nr::stats::topk(3, a).second == std::vector<size_t>{2, 3, 4});
 
+  REQUIRE(nr::stats::topk(6, a).first == std::vector{1,2,3,4,5});
+  REQUIRE(nr::stats::topk(6, a).second == std::vector<size_t>{0,1,2,3,4});
+
   std::vector<size_t> b{5, 600, 1, 0, 100, 20, 6, 99, 420};
   auto t1 = nr::stats::topk(1, b);
   auto t3 = nr::stats::topk(3, b);

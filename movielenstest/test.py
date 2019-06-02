@@ -54,7 +54,7 @@ def main():
     plt.show()
     '''
     n = create_tables(vt, 2, 1, 32, 50)
-    mips_recall = pe.MIPS_recall(1, test, item_factors=vt.transpose(), nr_table=n,
+    mips_recall = pe.MIPS_recall(3, test, item_factors=vt.transpose(), nr_table=n,
                                  review_matrix_csr=review_matrix_csr,
                                  mean_rating=mean_rating)
     print(mips_recall)
@@ -121,61 +121,6 @@ def create_tables(vt, num_tables, num_partitions, bits, dim):
     n.fill(vt.transpose(), False)
     n.stats()
     return n
-
-
-def do_other(us, n, idx_to_id, id_to_movie):
-    num_comps = 0
-    num_bucks = 0
-    num_parts = 0
-    num_tables = 0
-    successful_count = 0
-    for i in range(num_reviewers):
-        print(i)
-
-        if (i + 1) % 1000 == 0:
-            break
-
-        # make query unit length
-        user = us[i] / np.linalg.norm(us[i])
-
-        end = time.time()
-        p, stat_tracker = n.k_probe_approx(5, user, 1, 1000)
-        end = time.time() - end
-        #print(end)
-
-        print('comparisons: ' + str(stat_tracker.get_stats()))
-
-        if p is not None:
-            tracked = stat_tracker.tracked_stats()
-            num_comps += tracked.comps
-            num_bucks += tracked.bucks
-            num_parts += tracked.parts
-            num_tables += tracked.tables
-            successful_count += 1
-            for v, idx in p:
-                id = idx_to_id[idx]
-                movie = id_to_movie[id]
-                print(p is not None, movie)
-
-    print(' * Average Comps: ' + str(num_comps / successful_count))
-    print(' * Average Puckets Probed: ' + str(num_bucks / successful_count))
-    print(' * Average Parts Probed: ' + str(num_parts / successful_count))
-    print(' * Average Tables Probed: ' + str(num_tables / successful_count))
-    '''
-    success, (q, index) = n.probe_approx(user, .005)
-
-    print('Success' if success else 'Fail')
-
-    movies_file = open('ml-10m/ml-10M100K/movies.dat', 'r')
-    movies_line = movies_file.readlines()
-    movies = [line.split('::') for line in movies_line]
-
-    print(movies[index])
-    print(q.dot(user))
-    print(vt.transpose()[index].dot(user))
-    print(q.dot(vt.transpose()[0]))
-    '''
-
 
 if __name__ == "__main__":
     main()

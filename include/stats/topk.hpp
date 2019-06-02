@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 namespace nr {
 namespace stats {
 
@@ -17,7 +19,7 @@ template <template <typename Sub> typename Cont, typename Sub>
 static std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c) {
   // maintains sorted ordering and size of c. Removing smallest value
   // if to_insert is the smallest, it is not inserted.
-  // returns index inserted at. -1 if not inserted.
+  // returns index inserted at. 
 
   // start from the largest element.
   for (auto i = c.end() - 1; i >= c.begin(); --i) {
@@ -38,8 +40,11 @@ std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c) {
   if (k < 1) {
     throw std::logic_error("stats::topk, k must be positive.");
   }
-  if (k > c.size()) {
-    throw std::logic_error("stats::topk, k is greater than size of input.");
+  if (static_cast<size_t>(k) > c.size()) {
+    //throw std::logic_error("stats::topk, k is greater than size of input.");
+    Cont<size_t> indices(c.size());
+    std::iota(indices.begin(), indices.end(), 0);
+    return std::make_pair(c, indices);
   }
   Cont<Sub> topk(k, std::numeric_limits<Sub>::min());
   Cont<size_t> topk_idx(k, 0);

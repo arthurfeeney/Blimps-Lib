@@ -121,21 +121,27 @@ def topk_inner(k, inner):
     return inner[indices], indices
 
 def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean_rating):
+    # computes the average overlap of topk ratings on the test set. 
     total_hits = 0
     for (useridx, movieidx, rating) in test_ratings:
         assert rating == 5 - mean_rating
         user_ratings = review_matrix_csr[useridx].toarray()[0]
 
         # get the true topk.
-        true_topk, true_idx = topk_inner(1, user_ratings.dot(item_factors).dot(item_factors.transpose()))
+        true_topk, true_idx = topk_inner(k, user_ratings.dot(item_factors).dot(item_factors.transpose()))
 
         # probe k from the nr table.
         query = user_ratings.dot(item_factors)
         query /= np.linalg.norm(query) # queries are unit vectors
-        data, tracker = nr_table.probe(query, 2000)
+        data, tracker = nr_table.k_probe(k, query, 400)
+        #print(data)
+        frac = 0
         if data:
-            approx_topk, approx_idx = data
-            if approx_idx in true_idx:
-                total_hits += 1
-        print(total_hits)
+            approx_topk, approx_idx = zip(*data)
+            for a in approx_idx:
+                if a in true_idx:
+                    frac += 1
+            frac /= k
+            total_hits += frac
+        #print(total_hits)
     return total_hits / len(test_ratings)

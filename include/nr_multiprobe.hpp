@@ -50,7 +50,6 @@ public:
   std::pair<std::optional<KV>, StatTracker> probe(const Vect &q,
                                                   int64_t n_to_probe) {
     // searches through the first n_to_probe most likely buckets
-    // stat tracker isn't needed for this because it searches all the buckets.
 
     StatTracker tracker;
 
@@ -64,6 +63,29 @@ public:
     }
     return std::make_pair(std::nullopt, tracker);
   }
+
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  k_probe(int64_t k, const Vect &q, int64_t adj) {
+    StatTracker tracker;
+
+    std::vector<KV> vects(0);
+    for (auto &probe_table : probe_tables) {
+      if (k - vects.size() > 0) {
+        auto found = probe_table.k_probe(k, q, adj);
+        tracker += found.second;
+        if (found.first) {
+          std::vector<KV> v = found.first.value();
+          insert_kv(vects, v);
+        }
+      }
+    }
+
+    if (vects.size() == 0) {
+      std::make_pair(std::nullopt, tracker);
+    }
+    return std::make_pair(vects, tracker);
+  }
+
 
   std::pair<std::optional<KV>, StatTracker>
   probe_approx(const Vect &q, Component c, int64_t adj) {
