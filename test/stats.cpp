@@ -4,6 +4,7 @@
 #include <cmath>
 #include <list>
 #include <vector>
+#include <utility>
 
 #include "../include/stats/stats.hpp"
 
@@ -115,6 +116,69 @@ TEST_CASE("topk", "stats") {
 
   REQUIRE(t5.first == std::vector<size_t>{20, 99, 100, 420, 600});
   REQUIRE(t5.second == std::vector<size_t>{5, 7, 4, 8, 1});
+}
+
+TEST_CASE("topk with comp", "stats") {
+  std::vector<int> a{1, 2, 3, 4, 5};
+  auto out1 = nr::stats::topk(3, a,
+                  [](int a, int b){return a < b;},
+                  [](int a, int b){return a > b;});
+  REQUIRE(out1.first == std::vector{3, 4, 5});
+  REQUIRE(out1.second == std::vector<size_t>{2, 3, 4});
+
+  std::vector<int> b{5,4,2,6,7,1,2};
+  auto out2 = nr::stats::topk(3, b,
+                  [](int a, int b){return a < b;},
+                  [](int a, int b){return a > b;});
+  REQUIRE(out2.first == std::vector{5,6,7});
+  REQUIRE(out2.second == std::vector<size_t>{0,3,4});
+
+
+  // find topk of pairs with custom comparators.
+  using id = std::pair<int, double>;
+
+  std::vector<id> c{
+    std::make_pair(2, 0.0),
+    std::make_pair(1, 1.0),
+    std::make_pair(3, .5),
+    std::make_pair(0, .7)
+  };
+  // by first element in ascending order.
+  auto out3 = nr::stats::topk(2, c,
+                  [](id a, id b){return a.first < b.first;},
+                  [](id a, id b){return a.first > b.first;}).first;
+  std::vector<id> expected3 {
+    std::make_pair(2, 0.0),
+    std::make_pair(3, 0.5)
+  };
+  REQUIRE(out3.at(0).first == expected3.at(0).first);
+  REQUIRE(out3.at(0).second == expected3.at(0).second);
+  REQUIRE(out3.at(1).first == expected3.at(1).first);
+  REQUIRE(out3.at(0).second == expected3.at(0).second);
+
+  // by second element in ascending order.
+  auto out4 = nr::stats::topk(2, c,
+                  [](id a, id b){return a.second < b.second;},
+                  [](id a, id b){return a.second > b.second;}).first;
+  std::vector<id> expected4 {
+    std::make_pair(0, 0.7),
+    std::make_pair(1, 1.0)
+  };
+  REQUIRE(out4.at(0).first == expected4.at(0).first);
+  REQUIRE(out4.at(0).second == expected4.at(0).second);
+  REQUIRE(out4.at(1).first == expected4.at(1).first);
+  REQUIRE(out4.at(0).second == expected4.at(0).second);
+
+  std::vector<int> d {};
+  REQUIRE(nr::stats::topk(3, d,
+                          [](int a, int b){return a < b;},
+                          [](int a, int b){return a > b;}).first == std::vector<int>{});
+
+  std::vector<int> e {1};
+  REQUIRE(nr::stats::topk(3, e,
+                          [](int a, int b){return a < b;},
+                          [](int a, int b){return a > b;}).first == std::vector{1});
+
 }
 
 TEST_CASE("unique", "stats") {
