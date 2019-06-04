@@ -91,8 +91,7 @@ std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c,
 template <template <typename Sub> typename Cont, typename Sub, typename Less,
           typename Greater>
 std::pair<Cont<Sub>, Cont<size_t>>
-topk(int64_t k, const Cont<Sub> &c,
-     Less less, Greater greater) {
+topk(int64_t k, const Cont<Sub> &c, Less less, Greater greater) {
   // returns a pair. The first element is the topk values of the input.
   // The second element of the pair contains the indices of the topk
   if (k < 1) {
@@ -111,9 +110,9 @@ topk(int64_t k, const Cont<Sub> &c,
   Cont<size_t> topk_idx(k, 0);
   std::iota(topk_idx.begin(), topk_idx.end(), 0); // fill with initial indices.
   std::sort(topk_idx.begin(), topk_idx.end(),
-            [&c, less](size_t x, size_t y){return less(c[x], c[y]);});
+            [&c, &less](size_t x, size_t y){return less(c.at(x), c.at(y));});
 
-  for(size_t idx = 0; idx < k; ++idx) {
+  for(size_t idx = 0; idx < static_cast<size_t>(k); ++idx) {
     topk.at(idx) = c.at(topk_idx.at(idx));
   }
 

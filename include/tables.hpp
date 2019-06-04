@@ -153,7 +153,7 @@ public:
     return std::make_pair(ret, table_tracker);
   }
 
-  std::pair<std::optional<std::list<KV>>, StatTracker>
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe(int64_t k, const Vect &q, int64_t n_to_probe)  {
     if (k < 0) {
       throw std::runtime_error("tables::k_probe. k must be non-negative");
@@ -167,13 +167,16 @@ public:
     int64_t idx = residue.convert_to<int64_t>();
     auto rankings = sub_tables_rankings(idx);
 
-    std::list<KV> vects(0);
+    std::vector<KV> vects(0);
     // look through the top n_to_probe ranked buckets.
     // merge all buckets into the list vects.
     for (size_t col = 0; col < static_cast<size_t>(n_to_probe); ++col) {
       for (size_t t = 0; t < rankings.size(); ++t) {
-        std::list<KV> bucket = tables.at(t).at(col);
-        vects.splice(vects.end(), bucket);
+        const std::list<KV>& bucket = tables.at(t).at(col);
+        //vects.splice(vects.end(), bucket);
+        vects.insert(vects.end(),
+                     std::make_move_iterator(bucket.begin()),
+                     std::make_move_iterator(bucket.end()));
       }
     }
 
