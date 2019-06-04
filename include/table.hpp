@@ -267,14 +267,14 @@ public:
     std::cout << "\tmedian:     " << stats::median(non_empty_sizes) << '\n';
   }
 
-  const std::list<KV> &at(int idx) const {
+  const std::list<KV> &at(size_t idx) const {
     if (!(idx < size())) {
       throw std::out_of_range("Table::at(idx) idx out of bounds.");
     }
     return (*this)[idx];
   }
 
-  const std::list<KV> &operator[](int idx) const { return table[idx]; }
+  const std::list<KV> &operator[](size_t idx) const { return table[idx]; }
 
   size_t size() const { return num_buckets; }
 }; // namespace nr

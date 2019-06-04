@@ -116,3 +116,22 @@ TEST_CASE("topk", "stats") {
   REQUIRE(t5.first == std::vector<size_t>{20, 99, 100, 420, 600});
   REQUIRE(t5.second == std::vector<size_t>{5, 7, 4, 8, 1});
 }
+
+TEST_CASE("unique", "stats") {
+  std::vector<int> a{1,1,3,2,2,3,5};
+  REQUIRE(nr::stats::unique(a).first == std::vector{1,3,2,5});
+  std::list<int> b{5,1,2,1,2,1,2,1,2,1,2,1,3,3,5,-1};
+  REQUIRE(nr::stats::unique(b).first == std::list{5,1,2,3,-1});
+  std::list<size_t> c{1};
+  REQUIRE(nr::stats::unique(c).first == std::list<size_t>{1});
+  std::list<size_t> d{};
+  REQUIRE(nr::stats::unique(d).first == std::list<size_t>{});
+
+  // test if returned indices are correct
+  REQUIRE(nr::stats::unique(a).second == std::vector<size_t>{0,2,3,6});
+  REQUIRE(nr::stats::unique(c).second == std::list<size_t>{0});
+  REQUIRE(nr::stats::unique(d).second == std::list<size_t>{});
+
+  std::vector<int> e{1,2,3,5,5,5,5,6,1};
+  REQUIRE(nr::stats::unique(e).second == std::vector<size_t>{0,1,2,3,7});
+}

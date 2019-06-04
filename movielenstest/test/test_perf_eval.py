@@ -78,8 +78,6 @@ def test_user_recall():
         for elem in pe.get_k_unrated(4, user_ratings[0]):
             assert elem in [0,1,2,3,4]
 
-
-
     assert pe.user_recall(k, 1, user_ratings[0], user_factors[0,:], item_factors, mean_rating) == 1
 
 def test_topk_inner():
@@ -87,3 +85,10 @@ def test_topk_inner():
     assert all(pe.topk_inner(1, np.array([1,4,3,2]))[0] == np.array([4]))
     assert all(pe.topk_inner(4, np.array([1,4,3,2,-3, 5.5, 6.2]))[0] == np.array([6.2, 5.5, 4, 3]))
     assert all(pe.topk_inner(2, np.array([3,1,2,4,0]))[1] == np.array([3,0]))
+
+def test_fraction_intersect():
+    assert pe.fraction_intersect([1,2,3],[1,2,3]) == 1
+    assert pe.fraction_intersect([1,2,3], [1,2]) == 2/3
+    assert pe.fraction_intersect([0,1,2,6,3,7,8], [0,6,7,8]) == 4/7
+    assert pe.fraction_intersect([0,1,2,6,3,7,8], [0,6,7,8,5,10]) == 4/7
+    assert pe.fraction_intersect([1,2,3,4],[5,6,7,8]) == 0

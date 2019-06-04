@@ -153,12 +153,12 @@ public:
     return std::make_pair(ret, table_tracker);
   }
 
-  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  std::pair<std::optional<std::list<KV>>, StatTracker>
   k_probe(int64_t k, const Vect &q, int64_t n_to_probe)  {
     if (k < 0) {
-      throw std::runtime_error(
-          "tables::k_probe. k must be non-negative");
+      throw std::runtime_error("tables::k_probe. k must be non-negative");
     }
+
     StatTracker table_tracker;
 
     using mp = boost::multiprecision::cpp_int;
@@ -167,18 +167,16 @@ public:
     int64_t idx = residue.convert_to<int64_t>();
     auto rankings = sub_tables_rankings(idx);
 
-    std::vector<KV> vects(0);
+    std::list<KV> vects(0);
     // look through the top n_to_probe ranked buckets.
+    // merge all buckets into the list vects.
     for (size_t col = 0; col < static_cast<size_t>(n_to_probe); ++col) {
       for (size_t t = 0; t < rankings.size(); ++t) {
-      
-        // k largest items in highly ranked bucket rankings[t][col].
-        auto found = tables[t].topk_in_bucket(k, rankings[t][col], q);
-        if(found.size() > 0) {
-          vects.insert(vects.end(), found.begin(), found.end());
-        }
+        std::list<KV> bucket = tables.at(t).at(col);
+        vects.splice(vects.end(), bucket);
       }
     }
+
     if(vects.size() == 0) {
       return std::make_pair(std::nullopt, table_tracker);
     }

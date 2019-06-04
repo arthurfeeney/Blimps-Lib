@@ -17,7 +17,9 @@ factors = 50
 
 def main():
 
-    train, test, mean_rating = load_split_set(factors, 'ratings.dat')
+    train, test, mean_rating = load_split_set(factors,
+                                              file_name='ratings.dat',
+                                              frac=0.986)
     u, vt, review_matrix_csr = df_to_matrix(train)
 
     test = [tuple(i) for i in test[['userid', 'movieidx', 'rating']].values]
@@ -53,13 +55,15 @@ def main():
     plt.xticks(np.arange(0, 1.1, step=0.2))
     plt.show()
     '''
-    n = create_tables(vt, 2, 1, 32, 50)
-    mips_recall = pe.MIPS_recall(3, test, item_factors=vt.transpose(), nr_table=n,
-                                 review_matrix_csr=review_matrix_csr,
-                                 mean_rating=mean_rating)
+    n = create_tables(vt, 1, 1, 32, 50)
+    mips_recall, hit_recall = pe.MIPS_recall(10, test, item_factors=vt.transpose(),
+                                             nr_table=n,
+                                             review_matrix_csr=review_matrix_csr,
+                                             mean_rating=mean_rating)
     print(mips_recall)
+    print(hit_recall)
 
-def load_split_set(factors, file_name, path='ml-10m/ml-10M100K/'):
+def load_split_set(factors, file_name, frac=0.986, path='ml-10m/ml-10M100K/'):
     ratings = pandas.read_csv(path + file_name,
                               sep='::',
                               engine='python',
@@ -79,7 +83,7 @@ def load_split_set(factors, file_name, path='ml-10m/ml-10M100K/'):
 
     df = ratings.join(movies.set_index('movieid'), on='movieid')
 
-    train = df.sample(frac=0.986, random_state=200)
+    train = df.sample(frac=frac, random_state=200)
     probe = df.drop(train.index)  # random subsamle of 1.4% of the dataset.
 
     # test set is all 5 (minus the mean) star ratings in probe set.

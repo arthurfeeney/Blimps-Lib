@@ -114,14 +114,21 @@ def recall_and_precision(k, N, test_ratings, item_factors, review_matrix_csr, me
 
 #
 # Precision and Recall for MIPS.
+# Uses method described in "on Sym and Asym LSH paper."
 #
+
 def topk_inner(k, inner):
     # compute the topk largest inner products.
     indices = (-inner).argsort()[:k]
     return inner[indices], indices
 
+def fraction_intersect(l1, l2):
+    # computes the fraction of elements in l2 that are also in l1.
+    return len([a for a in l2 if a in l1]) / len(l1)
+
 def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean_rating):
-    # computes the average overlap of topk ratings on the test set. 
+    # computes the average overlap of topk ratings on the test set.
+    total_recall = 0
     total_hits = 0
     for (useridx, movieidx, rating) in test_ratings:
         assert rating == 5 - mean_rating
@@ -133,15 +140,13 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean
         # probe k from the nr table.
         query = user_ratings.dot(item_factors)
         query /= np.linalg.norm(query) # queries are unit vectors
-        data, tracker = nr_table.k_probe(k, query, 400)
-        #print(data)
-        frac = 0
+        data, tracker = nr_table.k_probe_approx(k, query, .3, 2000)
+
         if data:
-            approx_topk, approx_idx = zip(*data)
-            for a in approx_idx:
-                if a in true_idx:
-                    frac += 1
-            frac /= k
-            total_hits += frac
-        #print(total_hits)
-    return total_hits / len(test_ratings)
+            _, approx_idx = zip(*data)
+            # find the fraction of k_probe that are truly in the topk.
+            total_recall += fraction_intersect(true_idx, approx_idx)
+            # check if is 5 star movie in the topk.
+            total_hits += movieidx in approx_idx
+    # average % recall across test.
+    return total_recall / len(test_ratings), total_hits / len(test_ratings)

@@ -68,22 +68,42 @@ public:
   k_probe(int64_t k, const Vect &q, int64_t adj) {
     StatTracker tracker;
 
-    std::vector<KV> vects(0);
+    std::list<KV> probed_vects(0);
     for (auto &probe_table : probe_tables) {
-      if (k - vects.size() > 0) {
-        auto found = probe_table.k_probe(k, q, adj);
-        tracker += found.second;
-        if (found.first) {
-          std::vector<KV> v = found.first.value();
-          insert_kv(vects, v);
-        }
+      auto found = probe_table.k_probe(k, q, adj);
+      tracker += found.second;
+      if (found.first) {
+        std::list<KV> v = found.first.value();
+        probed_vects.splice(probed_vects.end(), v);
       }
     }
 
-    if (vects.size() == 0) {
+    if (probed_vects.size() == 0) {
       std::make_pair(std::nullopt, tracker);
     }
-    return std::make_pair(vects, tracker);
+
+    // get unique vects from probed items and convert list to vector.
+    auto unique_vects_with_ids = stats::unique(probed_vects);
+    const std::list<KV> &unique_vects = unique_vects_with_ids.first;
+    std::vector<KV> vects(unique_vects.begin(), unique_vects.end());
+
+    // compute inner products with q.
+    std::vector<typename Vect::value_type> inner(vects.size());
+    for(size_t i = 0; i < inner.size(); ++i) {
+      inner.at(i) = q.dot(vects.at(i).first);
+    }
+
+    // find indices of topk largest inner products
+    auto topk_inner_and_indices = stats::topk(k, inner);
+    std::vector<size_t> indices = topk_inner_and_indices.second;
+
+    // use those indices to get the vectors with the topk inner products.
+    std::vector<KV> topk_vects(indices.size());
+    for(size_t i = 0; i < indices.size(); ++i) {
+      topk_vects.at(i) = vects.at(indices.at(i));
+    }
+
+    return std::make_pair(topk_vects, tracker);
   }
 
 

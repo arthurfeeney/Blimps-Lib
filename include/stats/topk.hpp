@@ -16,10 +16,10 @@ static void shift_left_from_inplace(size_t idx, Cont &c) {
 }
 
 template <template <typename Sub> typename Cont, typename Sub>
-static std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c) {
+std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c) {
   // maintains sorted ordering and size of c. Removing smallest value
   // if to_insert is the smallest, it is not inserted.
-  // returns index inserted at. 
+  // returns index inserted at.
 
   // start from the largest element.
   for (auto i = c.end() - 1; i >= c.begin(); --i) {
