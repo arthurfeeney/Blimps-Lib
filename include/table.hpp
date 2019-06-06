@@ -125,23 +125,6 @@ public:
     return std::make_pair(max, partition_tracker);
   }
 
-  short same_bits(size_t m, size_t n, int64_t bits) const {
-    // if both have 0's and 1's in the same spot, similarity incremented.
-    short count = 0;
-
-    size_t one_bits = m & n; // both ones.
-    size_t zero_bits = ~m & ~n; // zero bits. (including those past true range.)
-
-    size_t match_bits = one_bits | zero_bits;
-
-    // iterate through first 'bits' of the matching bits.
-    for(int i = 0; (i < bits) && (match_bits > 0); ++i) {
-      count += match_bits & 1;
-      match_bits >>= 1;
-    }
-    return count;
-  }
-
   double sim(size_t idx, size_t other) const {
     /*
      * Similar inputs result in POSITIBE output.
@@ -150,7 +133,9 @@ public:
      */
     constexpr double PI = 3.141592653589;
     constexpr double e = 1e-3;
-    double l = static_cast<double>(same_bits(idx, other, hash.bit_count()));
+    double l = static_cast<double>(stats::same_bits(idx, other,
+                                                    std::floor(std::log2(num_buckets))+1));
+    return l;
     double L = static_cast<double>(hash.bit_count());
 
     return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));

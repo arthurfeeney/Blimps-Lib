@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 for plt_num, dim in enumerate([2, 4, 8, 16, 32, 64]):
 
     bits = 32
-    hash_max = 2**32 - 1
+    hash_max = 2**16-1
 
     hash = nr.simplelsh(bits, dim)
 
@@ -28,7 +28,7 @@ for plt_num, dim in enumerate([2, 4, 8, 16, 32, 64]):
     similarity = [0 for _ in range(data.shape[0])]
     for r in range(data.shape[0]):
         h1 = hash.hash(data[r], hash_max)
-        similarity[r] = nr.same_bits(q, h1, 32)
+        similarity[r] = nr.same_bits(q, h1, 16)
 
     inner_products, similarity = zip(*sorted(zip(inner_products, similarity)))
 

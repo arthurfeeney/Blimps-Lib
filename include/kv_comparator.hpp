@@ -2,7 +2,9 @@
 #pragma once
 
 /*
-
+* comparator functions for the KV type used by nr_multiprobe.
+* These are used by topk to find the k KV that have alarge inner products with
+* the query.   
 */
 
 namespace nr {

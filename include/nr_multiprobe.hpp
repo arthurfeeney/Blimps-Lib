@@ -87,12 +87,16 @@ public:
       std::make_pair(std::nullopt, tracker);
     }
 
+    // since each table contains the same data, we must only look at the
+    // unique probed vectors to avoid repeats in the output.
+    // this is NOT performant.
+    auto&& unique_vects = stats::unique(probed_vects).first;
+
     // less and greater define operator(KV x, KV y).
     KVLess<KV> kv_less(q);
     KVGreater<KV> kv_greater(q);
 
-    auto topk_vects =
-      stats::topk(k, probed_vects, kv_less, kv_greater).first;
+    auto topk_vects = stats::topk(k, unique_vects, kv_less, kv_greater).first;
 
     return std::make_pair(topk_vects, tracker);
   }

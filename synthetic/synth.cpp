@@ -22,11 +22,13 @@ int main() {
    * Generate data and fill NR-LSH table.
    */
 
-  std::vector<VectorXf> data = gen_data(10000, 40);
-  std::vector<VectorXf> queries = gen_data(100, 40);
+   size_t dim = 10;
+
+  std::vector<VectorXf> data = gen_data(10000, dim);
+  std::vector<VectorXf> queries = gen_data(100, dim);
 
   // probe(num_tables, num_partitions, bits, dim, num_buckets)
-  nr::NR_MultiProbe<VectorXf> probe(1, 1, 64, 40, 15000);
+  nr::NR_MultiProbe<VectorXf> probe(20, 1, 16, dim, 15000);
   probe.fill(data, false);
 
   /*
@@ -45,7 +47,7 @@ int main() {
     // probe a constant number of buckets.
     // returns largest IP found in buckets searched
     auto start = std::chrono::high_resolution_clock::now();
-    auto found = probe.probe(query, 2000);
+    auto found = probe.probe(query, 200);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -85,7 +87,7 @@ int main() {
 
     // probe constant number of buckets until 5 MIP > constant are found.
     start = std::chrono::high_resolution_clock::now();
-    auto topk_and_tracker = probe.k_probe_approx(5, query, 3, 1500);
+    auto topk_and_tracker = probe.k_probe(5, query, 300);
     end = std::chrono::high_resolution_clock::now();
     duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
