@@ -92,6 +92,15 @@ public:
     Vect bit_vect = numerals_to_bits(prods);
     return bits_to_num(bit_vect);
   }
+
+  size_t hash_max(const Vect& input, size_t max) {
+    using mp = boost::multiprecision::cpp_int;
+
+    mp mp_hash = hash(input);
+    mp residue = mp_hash % max;
+    size_t idx = residue.convert_to<size_t>();
+    return idx;
+  }
 };
 
 } // namespace nr

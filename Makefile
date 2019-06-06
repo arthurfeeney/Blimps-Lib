@@ -9,7 +9,8 @@ OMP = -fopenmp
 
 binding:
 	g++ $(FLAGS) -O3 -shared $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) $(FILE) $(OUT);
-	cp bind/nr_* movielenstest/
+	cp bind/nr_* movielenstest/;
+	cp bind/nr_* synthetic/
 
 clean:
 	rm bind/nr_binding.so
@@ -18,7 +19,7 @@ TEST = -I/home/afeeney/cpplibs/Catch2/
 CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp
 
 catch:
-	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp  
+	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp
 	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o $(CASES) && ./test/test --success
 
 synth:

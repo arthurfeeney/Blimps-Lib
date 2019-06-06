@@ -56,11 +56,11 @@ TEST_CASE("Table sim function", "table") {
 
   // ALL CODES SHOULD BE OF LENGTH 3 FOR THIS!!!
   // same or similar should be negative.
-  CHECK(t.sim(1, 1) < 0);
+  CHECK(t.sim(1, 1) > 0);
   CHECK(t.sim(0b111, 0b111) > 0);
 
   // disimilar
-  CHECK(t.sim(0b000, 0b000) < 0);
+  CHECK(t.sim(0b000, 0b000) > 0);
   CHECK(t.sim(0b100, 0b001) < 0);
 }
 
@@ -78,7 +78,7 @@ TEST_CASE("high(er)-dim similarity test", "table") {
 
   // disimilar
   REQUIRE(t.sim(0b111000, 0b000111) < 0);
-  REQUIRE(t.sim(0b111001, 0b100001) < 0);
+  REQUIRE(t.sim(0b111001, 0b100001) > 0);
 }
 
 TEST_CASE("Test table ranking", "table") {

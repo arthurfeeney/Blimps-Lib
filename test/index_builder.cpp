@@ -22,17 +22,19 @@ TEST_CASE("finds obvious max norm", "index_builder") {
 }
 
 TEST_CASE("find max norm in subset", "index_buidler") {
-  std::vector<Eigen::VectorXf> data(5, Eigen::VectorXf(3));
-  data[0] << 1, 1, 1;
+  std::vector<Eigen::VectorXf> data(6, Eigen::VectorXf(3));
+  data[0] << 1, 1, 1; // largest in partition 2;
   data[1] << .5, .1, .1;
   data[2] << -.3, -.3, .3;
   data[3] << .1, .1, .1;
-  data[4] << -.5, -.5, .5;
+  data[4] << -.5, -.5, .5; // largest in partition 1
+  data[5] << .6, .6, .6;
 
-  std::vector<int> partition{1, 2, 4};
+  std::vector<int> partition1{1, 2, 4};
+  std::vector<int> partition2{0, 3, 5};
 
-  float norm = nr::max_norm(data, partition);
-  REQUIRE(norm == data[4].norm());
+  REQUIRE(nr::max_norm(data, partition1) == data[4].norm());
+  REQUIRE(nr::max_norm(data, partition2) == data[0].norm());
 }
 
 TEST_CASE("Properly rank 3 vectors by norm", "index_builder") {
@@ -117,7 +119,8 @@ TEST_CASE("Partition 10 vectors into 3 partitions", "index_builder") {
 
   // overflow should go in the last partition.
   std::vector<std::vector<int64_t>> expected{
-      {9, 6, 7}, {5, 4, 3}, {2, 1, 0, 8}};
+      {9, 6, 7}, {5, 4, 3}, {2, 1, 0, 8}
+  };
 
   REQUIRE(parts == expected);
 }

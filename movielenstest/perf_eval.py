@@ -135,12 +135,12 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean
         user_ratings = review_matrix_csr[useridx].toarray()[0]
 
         # get the true topk.
-        true_topk, true_idx = topk_inner(k, user_ratings.dot(item_factors).dot(item_factors.transpose()))
+        true_topk, true_idx = topk_inner(k, user_ratings.dot(item_f actors).dot(item_factors.transpose()))
 
         # probe k from the nr table.
         query = user_ratings.dot(item_factors)
         query /= np.linalg.norm(query) # queries are unit vectors
-        data, tracker = nr_table.k_probe(k, query, 500)
+        data, tracker = nr_table.k_probe(k, query, 100)
 
         if data:
             _, approx_idx = zip(*data)

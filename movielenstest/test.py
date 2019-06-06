@@ -55,7 +55,7 @@ def main():
     plt.xticks(np.arange(0, 1.1, step=0.2))
     plt.show()
     '''
-    n = create_tables(vt, 1, 1, 32, 50)
+    n = create_tables(vt, 10, 1, 32, 50)
     mips_recall, hit_recall = pe.MIPS_recall(10, test, item_factors=vt.transpose(),
                                              nr_table=n,
                                              review_matrix_csr=review_matrix_csr,

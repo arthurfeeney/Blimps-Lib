@@ -50,10 +50,20 @@ std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c) {
     std::iota(indices.begin(), indices.end(), 0);
     return std::make_pair(c, indices);
   }
-  Cont<Sub> topk(k, std::numeric_limits<Sub>::min());
-  Cont<size_t> topk_idx(k, 0);
 
-  for (size_t idx = 0; idx < c.size(); ++idx) {
+  // insert first k values of c into topk.
+  Cont<Sub> topk(k);
+
+  Cont<size_t> topk_idx(k, 0);
+  std::iota(topk_idx.begin(), topk_idx.end(), 0); // fill with initial indices.
+  std::sort(topk_idx.begin(), topk_idx.end(),
+            [&c](size_t x, size_t y){return c.at(x) < c.at(y);});
+
+  for(size_t idx = 0; idx < static_cast<size_t>(k); ++idx) {
+    topk.at(idx) = c.at(topk_idx.at(idx));
+  }
+
+  for (size_t idx = k; idx < c.size(); ++idx) {
     std::optional<size_t> inserted = insert_inplace(c.at(idx), topk);
     if (inserted) {
       shift_left_from_inplace(inserted.value(), topk_idx);

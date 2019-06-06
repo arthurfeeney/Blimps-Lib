@@ -85,7 +85,7 @@ int main() {
 
     // probe constant number of buckets until 5 MIP > constant are found.
     start = std::chrono::high_resolution_clock::now();
-    auto topk_and_tracker = probe.k_probe_approx(5, query, 3, 200);
+    auto topk_and_tracker = probe.k_probe_approx(5, query, 3, 1500);
     end = std::chrono::high_resolution_clock::now();
     duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

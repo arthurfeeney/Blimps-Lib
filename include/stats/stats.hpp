@@ -131,5 +131,25 @@ std::pair<Cont<Sub>, Cont<size_t>> unique(const Cont<Sub> &c) {
   }
   return std::make_pair(unique_values, unique_idx);
 }
+
+short same_bits(size_t m, size_t n, int64_t bits) {
+  // if both have 0's and 1's in the same spot, similarity incremented.
+  short count = 0;
+
+  size_t one_bits = m & n; // both ones.
+  size_t zero_bits = ~m & ~n; // zero bits. (including those past true range.)
+
+  size_t match_bits = one_bits | zero_bits;
+
+  // iterate through first 'bits' of the matching bits.
+  for(int i = 0; i < bits; ++i) {
+    count += match_bits & 1;
+    match_bits >>= 1;
+  }
+  return count;
+}
+
+
+
 } // namespace stats
 } // namespace nr

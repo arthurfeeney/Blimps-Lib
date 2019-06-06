@@ -6,12 +6,23 @@
 #include <vector>
 
 #include "../include/nr_multiprobe.hpp"
+#include "../include/simple_lsh.hpp"
+#include "../include/stats/stats.hpp"
 
 namespace py = pybind11;
 using namespace nr;
 using namespace Eigen;
 
 PYBIND11_MODULE(nr_binding, m) {
+
+  m.def("same_bits", &stats::same_bits);
+
+  // Binding for SimpleLSH is primarly for testing it and plotting.
+  py::class_<SimpleLSH<float>>(m, "SimpleLSH")
+    .def(py::init<int64_t, int64_t>())
+    .def("bit_count", &SimpleLSH<float>::bit_count)
+    .def("dimension", &SimpleLSH<float>::dimension)
+    .def("hash", &SimpleLSH<float>::hash_max);
 
   // Utility class to allow users to stats.comparisons.
   py::class_<Tracked>(m, "Tracked")

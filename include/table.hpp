@@ -125,26 +125,32 @@ public:
     return std::make_pair(max, partition_tracker);
   }
 
-  short popcount(int64_t n) const {
-    // replacement for __builtin_popcount available in gcc.
-    // returns short because there aren't many digits.
+  short same_bits(size_t m, size_t n, int64_t bits) const {
+    // if both have 0's and 1's in the same spot, similarity incremented.
     short count = 0;
-    while (n) {
-      count += n & 1; // adds 1 if bit is positive.
-      n >>= 1;        // shift right 1.
+
+    size_t one_bits = m & n; // both ones.
+    size_t zero_bits = ~m & ~n; // zero bits. (including those past true range.)
+
+    size_t match_bits = one_bits | zero_bits;
+
+    // iterate through first 'bits' of the matching bits.
+    for(int i = 0; (i < bits) && (match_bits > 0); ++i) {
+      count += match_bits & 1;
+      match_bits >>= 1;
     }
     return count;
   }
 
-  double sim(int64_t idx, int64_t other) const {
+  double sim(size_t idx, size_t other) const {
     /*
      * Similar inputs result in POSITIBE output.
      * Disimilar inputs result in NEGATIVE output.
      * sort of similar inputs result in an output closer to zero.
      */
     constexpr double PI = 3.141592653589;
-    constexpr double e = 1e-8;
-    double l = static_cast<double>(popcount(idx & other));
+    constexpr double e = 1e-3;
+    double l = static_cast<double>(same_bits(idx, other, hash.bit_count()));
     double L = static_cast<double>(hash.bit_count());
 
     return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));

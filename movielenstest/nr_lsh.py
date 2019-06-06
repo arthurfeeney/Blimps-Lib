@@ -18,6 +18,12 @@ class float64(np.float64):
 _valid_float32 = [float32, np.float32, 'float32']
 _valid_float64 = [float64, np.float64, 'float64']
 
+def simplelsh(bits, dim):
+    return nr_binding.SimpleLSH(bits, dim)
+
+def same_bits(n1, n2, bits):
+    return nr_binding.same_bits(n1, n2, bits)
+
 
 def multiprobe(num_tables,
                num_partitions,
