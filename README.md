@@ -17,7 +17,7 @@ In the bind directory, there are some minimal python bindings that were made wit
 the dimension must be increased. So, if the data is transformed, it is possible
 to use LSH for MIPS! The transformation used by SimpleLSH is
 
-![\Large P(X)= (x, \sqrt{1 - ||x||_2^2})](https://latex.codecogs.com/svg.latex?x%3D%5Cfrac%7B-b%5Cpm%5Csqrt%7Bb%5E2-4ac%7D%7D%7B2a%7D)
+![\Large P(X)= (x, \sqrt{1 - ||x||_2^2})](http://latex.codecogs.com/gif.latex?%5CLarge%20P%28x%29%3D%20%5Cbig%28x%2C%20%5Csqrt%7B1%20-%20%7C%7Cx%7C%7C_2%5E2%7D%5Cbig%29)
 
 This makes vectors with large inner products also (probably) have similar hashes.
 
