@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 for plt_num, dim in enumerate([2, 4, 8, 16, 32, 64]):
 
     bits = 32
-    #dim = 4
     hash_max = 2**32 - 1
 
     hash = nr.simplelsh(bits, dim)
@@ -42,8 +41,10 @@ for plt_num, dim in enumerate([2, 4, 8, 16, 32, 64]):
     plt.subplot(3, 2, plt_num+1)
     plt.plot(inner_products, similarity, color='red')
     plt.plot(inner_products, line, color='black')
-    plt.title('SimpleLSH with dim=' + str(dim))
+    plt.title('dim=' + str(dim))
     plt.xlabel('inner product')
     plt.ylabel('similarity')
+
+
 plt.tight_layout()
 plt.show()
