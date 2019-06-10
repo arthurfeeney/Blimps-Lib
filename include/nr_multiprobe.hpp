@@ -90,7 +90,11 @@ public:
     // since each table contains the same data, we must only look at the
     // unique probed vectors to avoid repeats in the output.
     // this is NOT performant.
-    auto&& unique_vects = stats::unique(probed_vects).first;
+
+    auto&& unique_vects = stats::unique(probed_vects,
+                                        [](KV x, KV y) {
+                                          return x.second == y.second;
+                                        }).first;
 
     // less and greater define operator(KV x, KV y).
     KVLess<KV> kv_less(q);

@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef STATS_HPP
+#define STATS_HPP
 
 #include <algorithm>
 #include <cmath>
@@ -17,7 +18,9 @@
  */
 
 // include more complicated functions
+#include "recommender_eval.hpp"
 #include "topk.hpp"
+#include "unique.hpp"
 
 namespace nr {
 namespace stats {
@@ -111,46 +114,9 @@ Cont<Sub> nonzero(const Cont<Sub> &c) {
   return nonzero_elements;
 }
 
-template <template<typename Sub> typename Cont, typename Sub>
-std::pair<Cont<Sub>, Cont<size_t>> unique(const Cont<Sub> &c) {
-  // return unique elements of the input and their indices into the input.
-  // returned in order that the elements first appear in.
-  // - I.e., unique(2, 2, 1, 3) -> {2, 1, 3}.
-  Cont<Sub> unique_values(0);
-  Cont<size_t> unique_idx(0);
-  size_t idx = 0;
-  for(const Sub &elem : c) {
-    auto found_iter = std::find(unique_values.begin(), unique_values.end(), elem);
-
-    // if elem is not in unique_values, insert it.
-    if(found_iter == unique_values.end()) {
-      unique_values.push_back(elem);
-      unique_idx.push_back(idx);
-    }
-    ++idx; // increment index counter.
-  }
-  return std::make_pair(unique_values, unique_idx);
-}
-
-short same_bits(size_t m, size_t n, int64_t bits) {
-  // if both have 0's and 1's in the same spot, similarity incremented.
-  short count = 0;
-
-  size_t one_bits = m & n; // both ones.
-  size_t zero_bits = ~m & ~n; // zero bits. (including those past true range.)
-
-  size_t match_bits = one_bits | zero_bits;
-
-  // iterate through first 'bits' of the matching bits.
-  for(int i = 0; i < bits; ++i) {
-    count += match_bits & 1;
-    match_bits >>= 1;
-  }
-  return count;
-}
-
-
-
+short same_bits(size_t m, size_t n, size_t bits);
 
 } // namespace stats
 } // namespace nr
+
+#endif // STATS_HPP

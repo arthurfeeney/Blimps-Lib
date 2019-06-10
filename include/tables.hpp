@@ -175,8 +175,8 @@ public:
         const std::list<KV>& bucket = tables.at(t).at(col);
         //vects.splice(vects.end(), bucket);
         vects.insert(vects.end(),
-                     std::make_move_iterator(bucket.begin()),
-                     std::make_move_iterator(bucket.end()));
+                     bucket.begin(),
+                     bucket.end());
       }
     }
 

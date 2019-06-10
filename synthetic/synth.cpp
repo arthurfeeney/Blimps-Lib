@@ -24,87 +24,64 @@ int main() {
 
    size_t dim = 10;
 
-  std::vector<VectorXf> data = gen_data(10000, dim);
+  std::vector<VectorXf> data = gen_data((size_t)std::pow(2, 13), dim);
   std::vector<VectorXf> queries = gen_data(100, dim);
 
   // probe(num_tables, num_partitions, bits, dim, num_buckets)
-  nr::NR_MultiProbe<VectorXf> probe(20, 1, 16, dim, 15000);
+  nr::NR_MultiProbe<VectorXf> probe(10, 1, 20, dim, std::pow(2, 13));
   probe.fill(data, false);
 
   /*
    * Perform MIPS in a variety of ways
    */
 
+
   std::cout << std::setprecision(2) << std::fixed;
   std::cout << '\n';
 
-  std::vector<size_t> comp_list(0);
-  for (VectorXf &query : queries) {
 
+  std::vector<float> recalls(0);
+  for (VectorXf &query : queries) {
     // query should be unit length!!
     query /= query.norm();
 
-    // probe a constant number of buckets.
-    // returns largest IP found in buckets searched
-    auto start = std::chrono::high_resolution_clock::now();
-    auto found = probe.probe(query, 200);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    nr::Tracked probe_tracker = found.second.tracked_stats();
-    std::cout << probe_tracker.comparisons << ' ';
-    if (found.first) {
-      auto kv = found.first.value();
-      auto mip = kv.first;
-      std::cout << mip.dot(query) << ' ';
-    }
-    std::cout << duration.count() << "ms \t";
+    auto topk_vects = nr::stats::topk(5, data,
+                                  [&query](VectorXf x, VectorXf y) {
+                                    return query.dot(x) < query.dot(y);
+                                  },
+                                  [&query](VectorXf x, VectorXf y) {
+                                    return query.dot(x) > query.dot(y);
+                                  }).first;
 
-    // probe constant number of buckets until a MIP > constant is found
-    auto op_and_tracker = probe.probe_approx(query, 3, 200);
-    auto op = op_and_tracker.first;
-    nr::StatTracker t = op_and_tracker.second;
-    nr::Tracked tr = t.tracked_stats();
-    if (op) {
-      auto kv = op.value();
-      VectorXf mip = kv.first;
-      std::cout << mip.dot(query);
-    } else {
-      std::cout << "    "; // 4 spaces for blank.
+    for(auto& v : topk_vects) {
+      std::cout << v.dot(query) << ' ';
     }
     std::cout << '\t';
 
-    auto max = probe.find_max_inner(query);
-    std::cout << max.first.dot(query) << ' ';
 
-    // the EXACT MIPS with the query vector.
-    VectorXf exact = exact_MIPS(query, data);
-    std::cout << exact.dot(query) << '\t';
-
-    // # of comparisions during approx probing.
-    std::cout << "Approx Comps: " << tr.comparisons << '\t';
-    comp_list.push_back(tr.comparisons);
-
-    // probe constant number of buckets until 5 MIP > constant are found.
-    start = std::chrono::high_resolution_clock::now();
     auto topk_and_tracker = probe.k_probe(5, query, 300);
-    end = std::chrono::high_resolution_clock::now();
-    duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    auto opt_topk = topk_and_tracker.first;
+    auto opt_topk = topk_and_tracker.first.value();
 
-    std::cout << duration.count() << "ms" << ' ';
-    if (opt_topk) {
-      for (auto &kv : opt_topk.value()) {
-        std::cout << kv.first.dot(query) << ' ';
-      }
+    for (auto &kv : opt_topk) {
+      std::cout << kv.first.dot(query) << ' ';
     }
+    std::cout << '\t';
+
+    std::vector<VectorXf> predicted_topk(opt_topk.size());
+    for(size_t i = 0; i < opt_topk.size(); ++i) {
+      predicted_topk.at(i) = opt_topk.at(i).first;
+    }
+
+
+    float recall = nr::stats::recall(topk_vects, predicted_topk);
+
+    std::cout << recall;
+    recalls.push_back(recall);
+
     std::cout << '\n';
   }
 
-  float avg_comps = nr::stats::mean(comp_list);
-
-  std::cout << "avg comps: " << avg_comps << '\n';
+  std::cout << "average recall: " << nr::stats::mean(recalls) << '\n';
 
   return 0;
 }

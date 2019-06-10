@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 for plt_num, dim in enumerate([2, 4, 8, 16, 32, 64]):
 
     bits = 32
-    hash_max = 2**16-1
+    hash_max = 2**32-1
 
     hash = nr.simplelsh(bits, dim)
 

@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "../include/stats/stats.hpp"
+//#include "../include/nr_lsh.hpp"
 
 TEST_CASE("mean", "stats") {
   std::vector<int> a{1, 2, 3};
@@ -198,4 +199,40 @@ TEST_CASE("unique", "stats") {
 
   std::vector<int> e{1,2,3,5,5,5,5,6,1};
   REQUIRE(nr::stats::unique(e).second == std::vector<size_t>{0,1,2,3,7});
+}
+
+TEST_CASE("unique with comparator", "stats") {
+  using P = std::pair<int, double>;
+  std::vector<P> a {
+    std::make_pair(1, 0),
+    std::make_pair(2, -1),
+    std::make_pair(2, 0)
+  };
+  std::vector<P> un_a = nr::stats::unique(a, [](P x, P y) {
+    return x.first == y.first;
+  }).first;
+  std::vector<P> out_a {
+    std::make_pair(1, 0),
+    std::make_pair(2, -1),
+  };
+  REQUIRE(un_a.size() == out_a.size());
+  REQUIRE(un_a.at(0).first == out_a.at(0).first);
+  REQUIRE(un_a.at(0).second == out_a.at(0).second);
+  REQUIRE(un_a.at(1).first == out_a.at(1).first);
+  REQUIRE(un_a.at(1).second == out_a.at(1).second);
+}
+
+
+TEST_CASE("same bits", "simple_lsh") {
+  int a = 0b1010;
+  int b = 0b1000;
+  REQUIRE(nr::stats::same_bits(a, b, 4) == 3);
+
+  a = 0b0010;
+  b = 0b1011;
+  REQUIRE(nr::stats::same_bits(a, b, 4) == 2);
+
+  a = 0b001001001;
+  b = 0b101010101;
+  REQUIRE(nr::stats::same_bits(a, b, 9) == 5);
 }

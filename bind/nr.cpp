@@ -18,6 +18,7 @@ PYBIND11_MODULE(nr_binding, m) {
   m.def("same_bits", &stats::same_bits);
 
   // Binding for SimpleLSH is primarly for testing it and plotting.
+  // hash_max takes an extra argument to
   py::class_<SimpleLSH<float>>(m, "SimpleLSH")
     .def(py::init<int64_t, int64_t>())
     .def("bit_count", &SimpleLSH<float>::bit_count)
