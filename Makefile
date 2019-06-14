@@ -1,7 +1,9 @@
 
 FLAGS = -std=c++17 -Wall -pedantic -O3
 EIGEN = -I/home/afeeney/cpplibs/Eigen/
+PLOT = -I/home/afeeney/cpplibs/matplotlib-cpp -I/usr/include/python2.7 -lpython2.7
 PYBIND11 = -I/home/afeeney/cpplibs/pybind11/
+PLOT = -I/home/afeeney/cpplibs/matplotlib-cpp/ -I/usr/include/python2.7 -lpython2.7
 fPIC = -fPIC `python -m pybind11 --includes`
 OUT = -o bind/nr_binding`python-config --extension-suffix`
 FILE = bind/nr.cpp
@@ -26,5 +28,5 @@ catch:
 
 synth:
 	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
-	g++ $(FLAGS) $(OMP) $(EIGEN) -o synthetic/synth.o stats.o synthetic/synth.cpp;
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/synth.o stats.o synthetic/synth.cpp;
 	./synthetic/synth.o

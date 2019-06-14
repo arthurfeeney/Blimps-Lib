@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <boost/multiprecision/cpp_int.hpp>
+
 #include <cmath>
 #include <iterator>
 #include <limits>
@@ -131,8 +133,11 @@ public:
      * Disimilar inputs result in NEGATIVE output.
      * sort of similar inputs result in an output closer to zero.
      */
-    constexpr double PI = 3.141592653589;
-    constexpr double e = 1e-3;
+
+     // dont look in an empty bucket.
+
+    //constexpr double PI = 3.141592653589;
+    //constexpr double e = 1e-3;
     double l = static_cast<double>(stats::same_bits(idx, other,
                                                     std::floor(std::log2(num_buckets))+1));
 
@@ -184,7 +189,7 @@ public:
 
     partition_tracker.incr_buckets_probed();
 
-    for (auto it = table[bucket].begin(); it != table[bucket].end(); ++it) {
+    for (auto it = table.at(bucket).begin(); it != table.at(bucket).end(); ++it) {
       partition_tracker.incr_comparisons();
       if (q.dot((*it).first) > c) {
         return std::make_pair(*it, partition_tracker);
@@ -210,9 +215,9 @@ public:
         return std::make_pair(successful, partition_tracker);
       }
     }
-    // return true if at least one vector was found. False otherwise
+    // return success if at least one vector was found. False otherwise
     if (successful.size() == 0) {
-      return std::make_pair(std::optional<std::vector<KV>>{},
+      return std::make_pair(std::nullopt,
                             partition_tracker);
     }
     return std::make_pair(successful, partition_tracker);

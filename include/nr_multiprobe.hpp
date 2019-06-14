@@ -67,7 +67,7 @@ public:
 
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe(int64_t k, const Vect &q, int64_t adj) {
+  k_probe(int64_t k, const Vect &q, size_t adj) {
     StatTracker tracker;
 
     std::vector<KV> probed_vects(0);
@@ -78,8 +78,8 @@ public:
         std::vector<KV>& v = found.first.value();
         //probed_vects.splice(probed_vects.end(), v);
         probed_vects.insert(probed_vects.end(),
-                            std::make_move_iterator(v.begin()),
-                            std::make_move_iterator(v.end()));
+                            v.begin(),
+                            v.end());
       }
     }
 
@@ -91,16 +91,16 @@ public:
     // unique probed vectors to avoid repeats in the output.
     // this is NOT performant.
 
-    auto&& unique_vects = stats::unique(probed_vects,
-                                        [](KV x, KV y) {
-                                          return x.second == y.second;
-                                        }).first;
+    //auto unique_vects = stats::unique(probed_vects,
+    //                                    [](KV x, KV y) {
+    //                                      return x.second == y.second;
+    //                                    }).first;
 
     // less and greater define operator(KV x, KV y).
     KVLess<KV> kv_less(q);
     KVGreater<KV> kv_greater(q);
 
-    auto topk_vects = stats::topk(k, unique_vects, kv_less, kv_greater).first;
+    auto topk_vects = stats::topk(k, probed_vects, kv_less, kv_greater).first;
 
     return std::make_pair(topk_vects, tracker);
   }
