@@ -75,8 +75,7 @@ public:
       auto&& found = probe_table.k_probe(k, q, adj);
       tracker += found.second;
       if (found.first) {
-        std::vector<KV>& v = found.first.value();
-        //probed_vects.splice(probed_vects.end(), v);
+        const std::vector<KV>& v = found.first.value();
         probed_vects.insert(probed_vects.end(),
                             v.begin(),
                             v.end());
@@ -91,16 +90,16 @@ public:
     // unique probed vectors to avoid repeats in the output.
     // this is NOT performant.
 
-    //auto unique_vects = stats::unique(probed_vects,
-    //                                    [](KV x, KV y) {
-    //                                      return x.second == y.second;
-    //                                    }).first;
+    auto unique_vects = stats::unique(probed_vects,
+                                        [](KV x, KV y) {
+                                          return x.second == y.second;
+                                        }).first;
 
     // less and greater define operator(KV x, KV y).
     KVLess<KV> kv_less(q);
     KVGreater<KV> kv_greater(q);
 
-    auto topk_vects = stats::topk(k, probed_vects, kv_less, kv_greater).first;
+    auto topk_vects = stats::topk(k, unique_vects, kv_less, kv_greater).first;
 
     return std::make_pair(topk_vects, tracker);
   }
@@ -138,7 +137,7 @@ public:
     // modifies in-place.
     for (auto &kv : to_insert) {
       if (find_value(vects, kv.second) == vects.end()) {
-        // v is not in vects.
+        // kv is not in vects.
         vects.push_back(kv);
       }
     }

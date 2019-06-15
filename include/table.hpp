@@ -136,16 +136,16 @@ public:
 
      // dont look in an empty bucket.
 
-    //constexpr double PI = 3.141592653589;
-    //constexpr double e = 1e-3;
+    constexpr double PI = 3.141592653589;
+    constexpr double e = 1e-3;
     double l = static_cast<double>(stats::same_bits(idx, other,
                                                     std::floor(std::log2(num_buckets))+1));
 
     // if no partitions, similarity is just l
-    return l;
+    //return l;
 
-    // double L = static_cast<double>(hash.bit_count());
-    // return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));
+   double L = static_cast<double>(hash.bit_count());
+   return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));
   }
 
   std::vector<int64_t> probe_ranking(int64_t idx) const {

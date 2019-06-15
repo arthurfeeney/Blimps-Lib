@@ -26,7 +26,12 @@ catch:
 	g++ -std=c++17 $(FLAGS) $(EIGEN) -c include/stats/stats.cpp
 	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o stats.o $(CASES) && ./test/test --success
 
-synth:
+k_probe_approx:
 	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
-	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/synth.o stats.o synthetic/synth.cpp;
-	./synthetic/synth.o
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe_approx.o stats.o synthetic/synth_k_probe_approx.cpp;
+	./synthetic/k_probe_approx.o
+
+k_probe:
+	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe.o stats.o synthetic/synth_k_probe.cpp;
+	./synthetic/k_probe.o

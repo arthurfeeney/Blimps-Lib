@@ -6,6 +6,7 @@
 #include <iostream>
 #include <utility>
 
+#include "synth.hpp"
 #include "../include/nr_lsh.hpp"
 #include "../include/stat_tracker.hpp"
 #include "../include/stats/stats.hpp"
@@ -13,10 +14,6 @@
 using namespace Eigen;
 namespace plt = matplotlibcpp;
 
-std::vector<VectorXf> gen_data(size_t num, size_t dim);
-VectorXf exact_MIPS(VectorXf query, const std::vector<VectorXf> &data);
-std::vector<VectorXf> k_exact_MIPS(VectorXf query,
-                                   const std::vector<VectorXf> &data);
 
 int main() {
 
@@ -31,7 +28,9 @@ int main() {
   const std::vector<size_t> ks {
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
   };
-  const std::vector<double> rs {2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4.0};
+  const std::vector<double> rs {
+    2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4.0
+  };
 
   std::vector<std::vector<double>> ks_to_plot;
   std::vector<std::vector<double>> rs_to_plot;
@@ -46,7 +45,7 @@ int main() {
       std::vector<VectorXf> queries = gen_data(100, dim);
 
       // probe(num_tables, num_partitions, bits, dim, num_buckets)
-      nr::NR_MultiProbe<VectorXf> probe(20, 1, 32, dim, std::pow(2, 15));
+      nr::NR_MultiProbe<VectorXf> probe(20, 32, 32, dim, std::pow(2, 15) / 32);
       probe.fill(data, false);
 
       std::cout << std::setprecision(2) << std::fixed;
@@ -77,7 +76,7 @@ int main() {
         /*
         * Find some decent vectors and print their products with q.
         */
-        auto topk_and_tracker = probe.k_probe_approx(k, query, r, 100);
+        auto topk_and_tracker = probe.k_probe_approx(k, query, r, 100 / 32);
         auto opt_topk = topk_and_tracker.first.value();
         for (auto &kv : opt_topk) {
           std::cout << kv.first.dot(query) << ' ';
@@ -113,47 +112,4 @@ int main() {
   plt::plot_surface(rs_to_plot, ks_to_plot, recall_to_plot);
   plt::show();
   return 0;
-}
-
-std::vector<VectorXf> gen_data(size_t num, size_t dim) {
-  std::vector<VectorXf> data(num, VectorXf(dim));
-  nr::NormalMatrix<float> nm;
-  for (auto &datum : data) {
-    nm.fill_vector(datum); // datum is changed in-place
-  }
-  // vectors get normalized during insertion, before hashing.
-  return data;
-}
-
-VectorXf exact_MIPS(VectorXf query, const std::vector<VectorXf> &data) {
-  VectorXf max_found = data.at(0);
-  float max_inner = -1;
-  for (const VectorXf &v : data) {
-    float inner = query.dot(v);
-    if (inner > max_inner) {
-      max_found = v;
-      max_inner = inner;
-    }
-  }
-  return max_found;
-}
-
-std::vector<VectorXf> k_exact_MIPS(size_t k, VectorXf query,
-                                   const std::vector<VectorXf> &data) {
-  std::vector<float> prods(data.size());
-
-  // compute all inner products
-  for (size_t i = 0; i < data.size(); ++i) {
-    prods.at(i) = query.dot(data.at(i));
-  }
-
-  auto tk = nr::stats::topk(k, prods);
-  std::vector<size_t> indices = tk.second;
-
-  std::vector<VectorXf> topk_vects(indices.size());
-  for (size_t i = 0; i < indices.size(); ++i) {
-    topk_vects.at(i) = data.at(indices.at(i));
-  }
-
-  return topk_vects;
 }
