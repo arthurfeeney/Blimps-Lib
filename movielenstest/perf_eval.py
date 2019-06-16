@@ -130,7 +130,14 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean
     # computes the average overlap of topk ratings on the test set.
     total_recall = 0
     total_hits = 0
+    ctr = 0
     for (useridx, movieidx, rating) in test_ratings:
+        ctr += 1
+        print(ctr, len(test_ratings))
+        if ctr == 100:
+            break
+
+
         assert rating == 5 - mean_rating
         user_ratings = review_matrix_csr[useridx].toarray()[0]
 
@@ -140,7 +147,7 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean
         # probe k from the nr table.
         query = user_ratings.dot(item_factors)
         query /= np.linalg.norm(query) # queries are unit vectors
-        data, tracker = nr_table.k_probe(k, query, 100)
+        data, tracker = nr_table.k_probe(k, query, int(100))
 
         if data:
             _, approx_idx = zip(*data)
@@ -149,4 +156,5 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean
             # check if is 5 star movie in the topk.
             total_hits += movieidx in approx_idx
     # average % recall across test.
-    return total_recall / len(test_ratings), total_hits / len(test_ratings)
+    #return total_recall / len(test_ratings), total_hits / len(test_ratings)
+    return total_recall / ctr, total_hits / ctr
