@@ -133,9 +133,7 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean
     ctr = 0
     for (useridx, movieidx, rating) in test_ratings:
         ctr += 1
-        print(ctr, len(test_ratings))
-        if ctr == 100:
-            break
+        print(ctr)
 
 
         assert rating == 5 - mean_rating
@@ -147,7 +145,7 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr, mean
         # probe k from the nr table.
         query = user_ratings.dot(item_factors)
         query /= np.linalg.norm(query) # queries are unit vectors
-        data, tracker = nr_table.k_probe(k, query, int(100))
+        data, tracker = nr_table.k_probe(k, query, int(1000))
 
         if data:
             _, approx_idx = zip(*data)
