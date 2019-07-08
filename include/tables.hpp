@@ -154,7 +154,7 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe(int64_t k, const Vect &q, size_t n_to_probe)  {
+  k_probe(int64_t k, const Vect &q, size_t n_to_probe) {
     if (k < 0) {
       throw std::runtime_error("tables::k_probe. k must be non-negative");
     }
@@ -173,17 +173,14 @@ public:
     for (size_t col = 0; col < n_to_probe; ++col) {
       for (size_t t = 0; t < tables.size(); ++t) {
         const std::list<KV> bucket = tables.at(t).at(rankings.at(t).at(col));
-        //vects.splice(vects.end(), bucket);
-        vects.insert(vects.end(),
-                     bucket.begin(),
-                     bucket.end());
+        // vects.splice(vects.end(), bucket);
+        vects.insert(vects.end(), bucket.begin(), bucket.end());
       }
     }
 
-    if(vects.size() == 0) {
+    if (vects.size() == 0) {
       return std::make_pair(std::nullopt, table_tracker);
-    }
-    else {
+    } else {
       return std::make_pair(vects, table_tracker);
     }
   }
@@ -246,8 +243,8 @@ public:
     for (size_t col = 0; col < adj; ++col) {
       for (size_t t = 0; t < rankings.size(); ++t) {
 
-        auto found =
-            tables[t].look_in_until(rankings.at(t).at(col), q, c, k - vects.size());
+        auto found = tables[t].look_in_until(rankings.at(t).at(col), q, c,
+                                             k - vects.size());
 
         table_tracker += found.second; // add partitions' stats together
 

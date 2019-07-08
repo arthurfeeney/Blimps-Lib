@@ -7,11 +7,11 @@
 #include <utility>
 #include <vector>
 
+#include "kv_comparator.hpp"
 #include "simple_lsh.hpp"
 #include "stat_tracker.hpp"
 #include "stats/stats.hpp"
 #include "tables.hpp"
-#include "kv_comparator.hpp"
 
 /*
  * Multiprobe implementation of NR-LSH
@@ -33,6 +33,10 @@ public:
     for (auto &probe_table : probe_tables) {
       probe_table = Tables<Vect>(num_partitions, bits, dim, num_buckets);
     }
+  }
+
+  NR_MultiProbe(const NR_MultiProbe &other) {
+    probe_tables(other.probe_tables);
   }
 
   template <typename Cont> void fill(const Cont &data, bool is_normalized) {
@@ -65,20 +69,21 @@ public:
     return std::make_pair(std::nullopt, tracker);
   }
 
-
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe(int64_t k, const Vect &q, size_t adj) {
+    /*
+     * Very inneficient in its current form. Should index tables and
+     * get topk directly. Too much copying right now.
+     */
     StatTracker tracker;
 
     std::vector<KV> probed_vects(0);
     for (auto &probe_table : probe_tables) {
-      auto&& found = probe_table.k_probe(k, q, adj);
+      auto &&found = probe_table.k_probe(k, q, adj);
       tracker += found.second;
       if (found.first) {
-        const std::vector<KV>& v = found.first.value();
-        probed_vects.insert(probed_vects.end(),
-                            v.begin(),
-                            v.end());
+        const std::vector<KV> &v = found.first.value();
+        probed_vects.insert(probed_vects.end(), v.begin(), v.end());
       }
     }
 
@@ -89,11 +94,9 @@ public:
     // since each table contains the same data, we must only look at the
     // unique probed vectors to avoid repeats in the output.
     // this is NOT performant.
-
-    auto unique_vects = stats::unique(probed_vects,
-                                        [](KV x, KV y) {
-                                          return x.second == y.second;
-                                        }).first;
+    auto unique_vects = stats::unique(probed_vects, [](KV x, KV y) {
+                          return x.second == y.second;
+                        }).first;
 
     // less and greater define operator(KV x, KV y).
     KVLess<KV> kv_less(q);
@@ -103,7 +106,6 @@ public:
 
     return std::make_pair(topk_vects, tracker);
   }
-
 
   std::pair<std::optional<KV>, StatTracker>
   probe_approx(const Vect &q, Component c, int64_t adj) {
@@ -186,6 +188,6 @@ public:
   }
 
   size_t num_tables() const { return probe_tables.size(); }
-}; // namespace nr
+};
 
 } // namespace nr

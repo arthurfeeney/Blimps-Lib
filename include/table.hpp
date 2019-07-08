@@ -14,7 +14,6 @@
 #include <utility>
 #include <vector>
 
-
 #include <iostream>
 
 #include "simple_lsh.hpp"
@@ -134,18 +133,18 @@ public:
      * sort of similar inputs result in an output closer to zero.
      */
 
-     // dont look in an empty bucket.
+    // dont look in an empty bucket.
 
     constexpr double PI = 3.141592653589;
     constexpr double e = 1e-3;
-    double l = static_cast<double>(stats::same_bits(idx, other,
-                                                    std::floor(std::log2(num_buckets))+1));
+    double l = static_cast<double>(
+        stats::same_bits(idx, other, std::floor(std::log2(num_buckets)) + 1));
 
     // if no partitions, similarity is just l
-    //return l;
+    // return l;
 
-   double L = static_cast<double>(hash.bit_count());
-   return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));
+    double L = static_cast<double>(hash.bit_count());
+    return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));
   }
 
   std::vector<int64_t> probe_ranking(int64_t idx) const {
@@ -159,14 +158,14 @@ public:
     return rank;
   }
 
-  std::vector<KV>
-  topk_in_bucket(int64_t k, int64_t bucket, const Vect &q) const {
+  std::vector<KV> topk_in_bucket(int64_t k, int64_t bucket,
+                                 const Vect &q) const {
     // return the kv-pairs that result in the largest inner products with q.
-    if(table.at(bucket).size() == 0) {
+    if (table.at(bucket).size() == 0) {
       return {};
     }
     std::vector<typename Vect::value_type> inner(0);
-    for(auto& elem : table.at(bucket)) {
+    for (auto &elem : table.at(bucket)) {
       inner.push_back(elem.first.dot(q));
     }
 
@@ -174,7 +173,7 @@ public:
     auto indices = p.second;
 
     std::vector<KV> ret(indices.size());
-    for(size_t i = 0; i < indices.size(); ++i) {
+    for (size_t i = 0; i < indices.size(); ++i) {
       auto bucket_iter = table.at(bucket).begin();
       std::advance(bucket_iter, indices.at(i));
       ret.at(i) = *bucket_iter;
@@ -189,7 +188,8 @@ public:
 
     partition_tracker.incr_buckets_probed();
 
-    for (auto it = table.at(bucket).begin(); it != table.at(bucket).end(); ++it) {
+    for (auto it = table.at(bucket).begin(); it != table.at(bucket).end();
+         ++it) {
       partition_tracker.incr_comparisons();
       if (q.dot((*it).first) > c) {
         return std::make_pair(*it, partition_tracker);
@@ -217,8 +217,7 @@ public:
     }
     // return success if at least one vector was found. False otherwise
     if (successful.size() == 0) {
-      return std::make_pair(std::nullopt,
-                            partition_tracker);
+      return std::make_pair(std::nullopt, partition_tracker);
     }
     return std::make_pair(successful, partition_tracker);
   }

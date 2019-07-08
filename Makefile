@@ -19,7 +19,7 @@ clean:
 	rm bind/nr_binding.so
 
 TEST = -I/home/afeeney/cpplibs/Catch2/
-CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp
+CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp test/nr.cpp
 
 catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp
@@ -30,6 +30,11 @@ k_probe_approx:
 	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
 	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe_approx.o stats.o synthetic/synth_k_probe_approx.cpp;
 	./synthetic/k_probe_approx.o
+
+k_probe_approx_from_probs:
+	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/synth_from_probs.o stats.o synthetic/synth_from_probs.cpp;
+	./synthetic/synth_from_probs.o
 
 k_probe:
 	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp

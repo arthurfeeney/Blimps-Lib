@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <cmath>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "../include/nr_lsh.hpp"
 #include "../include/simple_lsh.hpp"
