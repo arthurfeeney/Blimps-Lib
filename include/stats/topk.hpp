@@ -16,8 +16,8 @@ static void shift_left_from_inplace(size_t idx, Cont &c) {
 }
 
 /*
-* Version of topk that uses operator<
-*/
+ * Version of topk that uses operator<
+ */
 
 template <template <typename Sub> typename Cont, typename Sub>
 std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c) {
@@ -57,9 +57,9 @@ std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c) {
   Cont<size_t> topk_idx(k, 0);
   std::iota(topk_idx.begin(), topk_idx.end(), 0); // fill with initial indices.
   std::sort(topk_idx.begin(), topk_idx.end(),
-            [&c](size_t x, size_t y){return c.at(x) < c.at(y);});
+            [&c](size_t x, size_t y) { return c.at(x) < c.at(y); });
 
-  for(size_t idx = 0; idx < static_cast<size_t>(k); ++idx) {
+  for (size_t idx = 0; idx < static_cast<size_t>(k); ++idx) {
     topk.at(idx) = c.at(topk_idx.at(idx));
   }
 
@@ -73,11 +73,10 @@ std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c) {
   return make_pair(topk, topk_idx);
 }
 
-
 /*
-* Version of topk that takes a comparator function, rather than using
-* operator<
-*/
+ * Version of topk that takes a comparator function, rather than using
+ * operator<
+ */
 
 template <template <typename Sub> typename Cont, typename Sub, typename Greater>
 std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c,
@@ -100,8 +99,8 @@ std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c,
 
 template <template <typename Sub> typename Cont, typename Sub, typename Less,
           typename Greater>
-std::pair<Cont<Sub>, Cont<size_t>>
-topk(int64_t k, const Cont<Sub> &c, Less less, Greater greater) {
+std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c,
+                                        Less less, Greater greater) {
   // returns a pair. The first element is the topk values of the input.
   // The second element of the pair contains the indices of the topk
   if (k < 1) {
@@ -114,21 +113,24 @@ topk(int64_t k, const Cont<Sub> &c, Less less, Greater greater) {
     return std::make_pair(c, indices);
   }
 
-  // insert first k values of c into topk.
   Cont<Sub> topk(k);
 
+  // initialize the topk indices with the first k indices
+  // sort them so they are in the correct order.
   Cont<size_t> topk_idx(k, 0);
-  std::iota(topk_idx.begin(), topk_idx.end(), 0); // fill with initial indices.
+  std::iota(topk_idx.begin(), topk_idx.end(), 0);
   std::sort(topk_idx.begin(), topk_idx.end(),
-            [&c, &less](size_t x, size_t y){return less(c.at(x), c.at(y));});
+            [&c, &less](size_t x, size_t y) { return less(c.at(x), c.at(y)); });
 
-  for(size_t idx = 0; idx < static_cast<size_t>(k); ++idx) {
+  // use the sorted indices to fill topk with initial values.
+  // the first k values of c, but in sorted order.
+  for (size_t idx = 0; idx < static_cast<size_t>(k); ++idx) {
     topk.at(idx) = c.at(topk_idx.at(idx));
   }
 
+  // find the topk and track their indices.
   for (size_t idx = k; idx < c.size(); ++idx) {
     std::optional<size_t> inserted = insert_inplace(c.at(idx), topk, greater);
-
     if (inserted) {
       shift_left_from_inplace(inserted.value(), topk_idx);
       topk_idx.at(inserted.value()) = idx;
@@ -136,7 +138,6 @@ topk(int64_t k, const Cont<Sub> &c, Less less, Greater greater) {
   }
   return make_pair(topk, topk_idx);
 }
-
 
 } // namespace stats
 } // namespace nr

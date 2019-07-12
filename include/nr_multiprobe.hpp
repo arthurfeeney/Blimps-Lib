@@ -11,6 +11,7 @@
 #include "simple_lsh.hpp"
 #include "stat_tracker.hpp"
 #include "stats/stats.hpp"
+#include "stats/topk.hpp"
 #include "tables.hpp"
 
 /*
@@ -25,11 +26,12 @@ private:
   using KV = std::pair<Vect, int64_t>;
 
   std::vector<Tables<Vect>> probe_tables;
+  int64_t dim;
 
 public:
   NR_MultiProbe(int64_t num_tables, int64_t num_partitions, int64_t bits,
                 int64_t dim, size_t num_buckets)
-      : probe_tables(num_tables) {
+      : probe_tables(num_tables), dim(dim) {
     for (auto &probe_table : probe_tables) {
       probe_table = Tables<Vect>(num_partitions, bits, dim, num_buckets);
     }
@@ -71,40 +73,32 @@ public:
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe(int64_t k, const Vect &q, size_t adj) {
-    /*
-     * Very inneficient in its current form. Should index tables and
-     * get topk directly. Too much copying right now.
-     */
     StatTracker tracker;
+    /*
+    std::vector<std::vector<std::vector<int64_t>>> rankings;
+    for (auto &table : probe_tables) {
+      rankings.push_back(table.rank_around_query(q));
+    }*/
 
-    std::vector<KV> probed_vects(0);
-    for (auto &probe_table : probe_tables) {
-      auto &&found = probe_table.k_probe(k, q, adj);
-      tracker += found.second;
-      if (found.first) {
-        const std::vector<KV> &v = found.first.value();
-        probed_vects.insert(probed_vects.end(), v.begin(), v.end());
+    std::vector<KV> topk(k, std::make_pair(Vect::Zero(dim), 0));
+
+    // use each sub-tables rankings to find the top-k largest
+    // items of all the buckets.
+    for (size_t probe = 0; probe < probe_tables.size(); ++probe) {
+      auto rankings = probe_tables.at(probe).rank_around_query(q);
+      for (size_t col = 0; col < adj; ++col) {
+        for (size_t t = 0; t < probe_tables.at(probe).size(); ++t) {
+          const std::list<KV> &bucket =
+              probe_tables.at(probe).at(t).at(rankings.at(t).at(col));
+          for (const KV &item : bucket) {
+            stats::insert_inplace(item, topk, [&q](KV x, KV y) {
+              return q.dot(x.first) > q.dot(y.first);
+            });
+          }
+        }
       }
     }
-
-    if (probed_vects.size() == 0) {
-      std::make_pair(std::nullopt, tracker);
-    }
-
-    // since each table contains the same data, we must only look at the
-    // unique probed vectors to avoid repeats in the output.
-    // this is NOT performant.
-    auto unique_vects = stats::unique(probed_vects, [](KV x, KV y) {
-                          return x.second == y.second;
-                        }).first;
-
-    // less and greater define operator(KV x, KV y).
-    KVLess<KV> kv_less(q);
-    KVGreater<KV> kv_greater(q);
-
-    auto topk_vects = stats::topk(k, unique_vects, kv_less, kv_greater).first;
-
-    return std::make_pair(topk_vects, tracker);
+    return std::make_pair(topk, tracker);
   }
 
   std::pair<std::optional<KV>, StatTracker>

@@ -194,16 +194,19 @@ public:
     return rankings;
   }
 
-  std::pair<std::optional<KV>, StatTracker>
-  probe_approx(const Vect &q, Component c, int64_t adj) const {
-    StatTracker table_tracker;
-
+  std::vector<std::vector<int64_t>> rank_around_query(const Vect &q) const {
     using mp = boost::multiprecision::cpp_int;
     mp mp_hash = hash(q);
     mp residue = mp_hash % num_buckets;
     int64_t idx = residue.convert_to<int64_t>();
+    return sub_tables_rankings(idx);
+  }
 
-    auto rankings = sub_tables_rankings(idx);
+  std::pair<std::optional<KV>, StatTracker>
+  probe_approx(const Vect &q, Component c, int64_t adj) const {
+    StatTracker table_tracker;
+
+    auto rankings = rank_around_query(q);
     // iterate column major though rankings until dot(q, x) > c is found.
     // look through adj other buckets. Should be the top ranked ones.
     // probes the best bucket of each table first.
@@ -279,7 +282,7 @@ public:
     }
   }
 
-  const Table<Vect> &at(int idx) const {
+  const Table<Vect> &at(size_t idx) const {
     if (!(idx < size())) {
       throw std::out_of_range("Tables::at(idx) idx out of bounds.");
     }
