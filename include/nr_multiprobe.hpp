@@ -74,13 +74,9 @@ public:
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe(int64_t k, const Vect &q, size_t adj) {
     StatTracker tracker;
-    /*
-    std::vector<std::vector<std::vector<int64_t>>> rankings;
-    for (auto &table : probe_tables) {
-      rankings.push_back(table.rank_around_query(q));
-    }*/
 
-    std::vector<KV> topk(k, std::make_pair(Vect::Zero(dim), 0));
+    // std::vector<KV> topk(k, std::make_pair(Vect::Zero(dim), 0));
+    std::vector<KV> topk(0);
 
     // use each sub-tables rankings to find the top-k largest
     // items of all the buckets.
@@ -91,9 +87,16 @@ public:
           const std::list<KV> &bucket =
               probe_tables.at(probe).at(t).at(rankings.at(t).at(col));
           for (const KV &item : bucket) {
-            stats::insert_inplace(item, topk, [&q](KV x, KV y) {
-              return q.dot(x.first) > q.dot(y.first);
-            });
+            if (topk.size() < k) {
+              topk.push_back(item);
+              std::sort(topk.begin(), topk.end(), [&q](KV x, KV y) {
+                return q.dot(x.first) < q.dot(y.first);
+              });
+            } else {
+              stats::insert_inplace(item, topk, [&q](KV x, KV y) {
+                return q.dot(x.first) > q.dot(y.first);
+              });
+            }
           }
         }
       }

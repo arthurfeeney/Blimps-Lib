@@ -23,7 +23,7 @@ CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp 
 
 catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp
-	g++ -std=c++17 $(FLAGS) $(EIGEN) -c include/stats/stats.cpp
+	g++ $(FLAGS) $(EIGEN) -c include/stats/stats.cpp
 	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o stats.o $(CASES) && ./test/test --success
 
 k_probe_approx:

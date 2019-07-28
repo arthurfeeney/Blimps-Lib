@@ -3,8 +3,8 @@
 
 #include <cmath>
 #include <list>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "../include/stats/stats.hpp"
 //#include "../include/nr_lsh.hpp"
@@ -101,8 +101,8 @@ TEST_CASE("topk", "stats") {
   REQUIRE(nr::stats::topk(3, a).first == std::vector{3, 4, 5});
   REQUIRE(nr::stats::topk(3, a).second == std::vector<size_t>{2, 3, 4});
 
-  REQUIRE(nr::stats::topk(6, a).first == std::vector{1,2,3,4,5});
-  REQUIRE(nr::stats::topk(6, a).second == std::vector<size_t>{0,1,2,3,4});
+  REQUIRE(nr::stats::topk(6, a).first == std::vector{1, 2, 3, 4, 5});
+  REQUIRE(nr::stats::topk(6, a).second == std::vector<size_t>{0, 1, 2, 3, 4});
 
   std::vector<size_t> b{5, 600, 1, 0, 100, 20, 6, 99, 420};
   auto t1 = nr::stats::topk(1, b);
@@ -121,99 +121,87 @@ TEST_CASE("topk", "stats") {
 
 TEST_CASE("topk with comp", "stats") {
   std::vector<int> a{1, 2, 3, 4, 5};
-  auto out1 = nr::stats::topk(3, a,
-                  [](int a, int b){return a < b;},
-                  [](int a, int b){return a > b;});
+  auto out1 = nr::stats::topk(
+      3, a, [](int a, int b) { return a < b; },
+      [](int a, int b) { return a > b; });
   REQUIRE(out1.first == std::vector{3, 4, 5});
   REQUIRE(out1.second == std::vector<size_t>{2, 3, 4});
 
-  std::vector<int> b{5,4,2,6,7,1,2};
-  auto out2 = nr::stats::topk(3, b,
-                  [](int a, int b){return a < b;},
-                  [](int a, int b){return a > b;});
-  REQUIRE(out2.first == std::vector{5,6,7});
-  REQUIRE(out2.second == std::vector<size_t>{0,3,4});
-
+  std::vector<int> b{5, 4, 2, 6, 7, 1, 2};
+  auto out2 = nr::stats::topk(
+      3, b, [](int a, int b) { return a < b; },
+      [](int a, int b) { return a > b; });
+  REQUIRE(out2.first == std::vector{5, 6, 7});
+  REQUIRE(out2.second == std::vector<size_t>{0, 3, 4});
 
   // find topk of pairs with custom comparators.
   using id = std::pair<int, double>;
 
-  std::vector<id> c{
-    std::make_pair(2, 0.0),
-    std::make_pair(1, 1.0),
-    std::make_pair(3, .5),
-    std::make_pair(0, .7)
-  };
+  std::vector<id> c{std::make_pair(2, 0.0), std::make_pair(1, 1.0),
+                    std::make_pair(3, .5), std::make_pair(0, .7)};
   // by first element in ascending order.
-  auto out3 = nr::stats::topk(2, c,
-                  [](id a, id b){return a.first < b.first;},
-                  [](id a, id b){return a.first > b.first;}).first;
-  std::vector<id> expected3 {
-    std::make_pair(2, 0.0),
-    std::make_pair(3, 0.5)
-  };
+  auto out3 = nr::stats::topk(
+                  2, c, [](id a, id b) { return a.first < b.first; },
+                  [](id a, id b) { return a.first > b.first; })
+                  .first;
+  std::vector<id> expected3{std::make_pair(2, 0.0), std::make_pair(3, 0.5)};
   REQUIRE(out3.at(0).first == expected3.at(0).first);
   REQUIRE(out3.at(0).second == expected3.at(0).second);
   REQUIRE(out3.at(1).first == expected3.at(1).first);
   REQUIRE(out3.at(0).second == expected3.at(0).second);
 
   // by second element in ascending order.
-  auto out4 = nr::stats::topk(2, c,
-                  [](id a, id b){return a.second < b.second;},
-                  [](id a, id b){return a.second > b.second;}).first;
-  std::vector<id> expected4 {
-    std::make_pair(0, 0.7),
-    std::make_pair(1, 1.0)
-  };
+  auto out4 = nr::stats::topk(
+                  2, c, [](id a, id b) { return a.second < b.second; },
+                  [](id a, id b) { return a.second > b.second; })
+                  .first;
+  std::vector<id> expected4{std::make_pair(0, 0.7), std::make_pair(1, 1.0)};
   REQUIRE(out4.at(0).first == expected4.at(0).first);
   REQUIRE(out4.at(0).second == expected4.at(0).second);
   REQUIRE(out4.at(1).first == expected4.at(1).first);
   REQUIRE(out4.at(0).second == expected4.at(0).second);
 
-  std::vector<int> d {};
-  REQUIRE(nr::stats::topk(3, d,
-                          [](int a, int b){return a < b;},
-                          [](int a, int b){return a > b;}).first == std::vector<int>{});
+  std::vector<int> d{};
+  REQUIRE(nr::stats::topk(
+              3, d, [](int a, int b) { return a < b; },
+              [](int a, int b) { return a > b; })
+              .first == std::vector<int>{});
 
-  std::vector<int> e {1};
-  REQUIRE(nr::stats::topk(3, e,
-                          [](int a, int b){return a < b;},
-                          [](int a, int b){return a > b;}).first == std::vector{1});
-
+  std::vector<int> e{1};
+  REQUIRE(nr::stats::topk(
+              3, e, [](int a, int b) { return a < b; },
+              [](int a, int b) { return a > b; })
+              .first == std::vector{1});
 }
 
 TEST_CASE("unique", "stats") {
-  std::vector<int> a{1,1,3,2,2,3,5};
-  REQUIRE(nr::stats::unique(a).first == std::vector{1,3,2,5});
-  std::list<int> b{5,1,2,1,2,1,2,1,2,1,2,1,3,3,5,-1};
-  REQUIRE(nr::stats::unique(b).first == std::list{5,1,2,3,-1});
+  std::vector<int> a{1, 1, 3, 2, 2, 3, 5};
+  REQUIRE(nr::stats::unique(a).first == std::vector{1, 3, 2, 5});
+  std::list<int> b{5, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 3, 3, 5, -1};
+  REQUIRE(nr::stats::unique(b).first == std::list{5, 1, 2, 3, -1});
   std::list<size_t> c{1};
   REQUIRE(nr::stats::unique(c).first == std::list<size_t>{1});
   std::list<size_t> d{};
   REQUIRE(nr::stats::unique(d).first == std::list<size_t>{});
 
   // test if returned indices are correct
-  REQUIRE(nr::stats::unique(a).second == std::vector<size_t>{0,2,3,6});
+  REQUIRE(nr::stats::unique(a).second == std::vector<size_t>{0, 2, 3, 6});
   REQUIRE(nr::stats::unique(c).second == std::list<size_t>{0});
   REQUIRE(nr::stats::unique(d).second == std::list<size_t>{});
 
-  std::vector<int> e{1,2,3,5,5,5,5,6,1};
-  REQUIRE(nr::stats::unique(e).second == std::vector<size_t>{0,1,2,3,7});
+  std::vector<int> e{1, 2, 3, 5, 5, 5, 5, 6, 1};
+  REQUIRE(nr::stats::unique(e).second == std::vector<size_t>{0, 1, 2, 3, 7});
 }
 
 TEST_CASE("unique with comparator", "stats") {
   using P = std::pair<int, double>;
-  std::vector<P> a {
-    std::make_pair(1, 0),
-    std::make_pair(2, -1),
-    std::make_pair(2, 0)
-  };
-  std::vector<P> un_a = nr::stats::unique(a, [](P x, P y) {
-    return x.first == y.first;
-  }).first;
-  std::vector<P> out_a {
-    std::make_pair(1, 0),
-    std::make_pair(2, -1),
+  std::vector<P> a{std::make_pair(1, 0), std::make_pair(2, -1),
+                   std::make_pair(2, 0)};
+  std::vector<P> un_a =
+      nr::stats::unique(a, [](P x, P y) { return x.first == y.first; }).first;
+  std::vector<P> out_a{
+      std::make_pair(1, 0),
+      std::make_pair(2, -1),
   };
   REQUIRE(un_a.size() == out_a.size());
   REQUIRE(un_a.at(0).first == out_a.at(0).first);
@@ -221,7 +209,6 @@ TEST_CASE("unique with comparator", "stats") {
   REQUIRE(un_a.at(1).first == out_a.at(1).first);
   REQUIRE(un_a.at(1).second == out_a.at(1).second);
 }
-
 
 TEST_CASE("same bits", "simple_lsh") {
   int a = 0b1010;
@@ -235,4 +222,61 @@ TEST_CASE("same bits", "simple_lsh") {
   a = 0b001001001;
   b = 0b101010101;
   REQUIRE(nr::stats::same_bits(a, b, 9) == 5);
+}
+
+TEST_CASE("partition simple", "stats") {
+  std::vector<int> a{1, 3, 2};
+  REQUIRE(nr::stats::partition(a, 0, a.size() - 1) == 1);
+
+  std::vector<int> b{1, 2, 4, 3};
+  REQUIRE(nr::stats::partition(b, 0, b.size() - 1) == 2);
+
+  std::vector<int> c{1, 2, 4, 3, 5};
+  REQUIRE(nr::stats::partition(c, 0, c.size() - 1) == 4);
+
+  // 1.0 is the pivot and smallest, so pivot is at 0.
+  std::vector<double> d{2.0, 3.1, 5, 3.9, 1.0};
+  REQUIRE(nr::stats::partition(d, 0, c.size() - 1) == 0);
+}
+
+bool correct_partition(int64_t q, std::vector<int> &v) {
+  for (size_t i = 0; i < v.size(); ++i) {
+    if (i <= q && v[i] > v[q])
+      return false;
+    if (i > q && v[i] <= v[q])
+      return false;
+  }
+  return true;
+}
+
+TEST_CASE("random partition", "stats") {
+  std::vector<int> a{1, 2, 3};
+  int64_t q = nr::stats::random_partition(a, 0, a.size() - 1);
+  REQUIRE(correct_partition(q, a));
+
+  for (size_t i = 0; i < 15; ++i) {
+    std::vector<int> b{3, 2, 0, 5, 6, 7, 1, 10, 11, 19, 15, 23};
+    q = nr::stats::random_partition(b, 0, b.size() - 1);
+    REQUIRE(correct_partition(q, b));
+  }
+}
+
+TEST_CASE("lower median simple", "stats") {
+  std::vector<int> a{1, 2, 3};
+  CHECK(nr::stats::lower_median(a) == 2);
+
+  std::vector<int> b{2, 1, 4, 3, 10, 8, 7, 5, 9, 6};
+  CHECK(nr::stats::lower_median(b) == 5);
+
+  std::vector<int> c{1, 2, 3, 4};
+  CHECK(nr::stats::lower_median(c) == 2);
+
+  std::vector<int> d{1, 4, 3, 2};
+  CHECK(nr::stats::lower_median(d) == 2);
+
+  std::vector<int> e{1, 2, 3, 4, 5};
+  CHECK(nr::stats::lower_median(e) == 3);
+
+  std::vector<int> f{5, 4, 1, 2, 3};
+  CHECK(nr::stats::lower_median(f) == 3);
 }

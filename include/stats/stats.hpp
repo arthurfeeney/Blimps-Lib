@@ -4,12 +4,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <type_traits>
-#include <functional>
 
 /*
  * Implementations of some simple statistics that are not provided
@@ -18,6 +18,7 @@
  */
 
 // include more complicated functions
+#include "median.hpp"
 #include "recommender_eval.hpp"
 #include "topk.hpp"
 #include "unique.hpp"
@@ -53,7 +54,8 @@ template <typename Cont> double stdev(const Cont &c) {
 template <typename Cont> double median(Cont c) {
   // don't need to sort(?), but c shouldn't be too large anyway.
   // so the time shouldn't be too bad.
-  // returns double for when there are an even numer of elements.
+  // returns average of upper and lower median
+  // when there are an even numer of elements.
 
   if (c.size() == 0) {
     // median of empty container is undefined
