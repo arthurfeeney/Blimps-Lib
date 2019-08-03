@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "kv_comparator.hpp"
+#include "multiprobe.hpp"
 #include "simple_lsh.hpp"
 #include "stat_tracker.hpp"
 #include "stats/stats.hpp"
@@ -20,7 +21,7 @@
 
 namespace nr {
 
-template <typename Vect> class NR_MultiProbe {
+template <typename Vect> class NR_MultiProbe : public MultiProbe<Vect> {
 private:
   using Component = typename Vect::value_type;
   using KV = std::pair<Vect, int64_t>;
@@ -54,14 +55,13 @@ public:
     }
   }
 
-  std::pair<std::optional<KV>, StatTracker> probe(const Vect &q,
-                                                  int64_t n_to_probe) {
-    // searches through the first n_to_probe most likely buckets
+  std::pair<std::optional<KV>, StatTracker> probe(const Vect &q, int64_t adj) {
+    // searches through the first adj most likely buckets
 
     StatTracker tracker;
 
     for (auto &probe_table : probe_tables) {
-      auto p = probe_table.probe(q, n_to_probe);
+      auto p = probe_table.probe(q, adj);
       std::optional<KV> out = p.first;
       tracker += p.second;
       if (out) {
@@ -75,7 +75,6 @@ public:
   k_probe(int64_t k, const Vect &q, size_t adj) {
     StatTracker tracker;
 
-    // std::vector<KV> topk(k, std::make_pair(Vect::Zero(dim), 0));
     std::vector<KV> topk(0);
 
     // use each sub-tables rankings to find the top-k largest

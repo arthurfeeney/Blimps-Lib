@@ -1,6 +1,8 @@
 
+
 #include "catch.hpp"
-#include "utility"
+
+#include <utility>
 
 #include "../include/stat_tracker.hpp"
 

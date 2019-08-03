@@ -20,7 +20,7 @@ int main() {
    * Generate data and fill NR-LSH table.
    */
 
-  const size_t dim = 2;
+  const size_t dim = 10;
 
   const std::vector<size_t> ks{
       1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11,
@@ -33,13 +33,13 @@ int main() {
 
   for (size_t k : ks) {
     std::vector<VectorXf> data = gen_data(std::pow(2, 16), dim);
-    std::vector<VectorXf> queries = gen_data(100, dim);
+    std::vector<VectorXf> queries = gen_data(200, dim);
 
     // auto sizes = nr::sizes_from_probs(data.size(), .9, .5);
     // int64_t bits = sizes.first;
     // int64_t num_tables = sizes.second;
     // std::cout << bits << ' ' << num_tables << "\n\n\n";
-    nr::NR_MultiProbe<VectorXf> probe(10, 1, 32, dim, std::pow(2, 16));
+    nr::NR_MultiProbe<VectorXf> probe(2, 1, 48, dim, std::pow(2, 16));
 
     probe.fill(data, false);
 

@@ -93,7 +93,7 @@ public:
     return bits_to_num(bit_vect);
   }
 
-  size_t hash_max(const Vect& input, size_t max) {
+  size_t hash_max(const Vect &input, size_t max) {
     using mp = boost::multiprecision::cpp_int;
 
     mp mp_hash = hash(input);
