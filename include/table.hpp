@@ -251,7 +251,7 @@ public:
     std::cout << "\tmin:        " << min << '\n';
     std::cout << "\tvar:        " << var << '\n';
     std::cout << "\tstdev:      " << stdev << '\n';
-    std::cout << "\tmedian:     " << stats::median(bucket_sizes) << '\n';
+    std::cout << "\tlow median: " << stats::lower_median(bucket_sizes) << '\n';
     std::cout << "\tempty:      " << num_empty_buckets << '\n';
     std::cout << "\tnon-empty:  " << num_buckets - num_empty_buckets << '\n';
 
@@ -261,7 +261,8 @@ public:
     std::cout << "\tmean:       " << stats::mean(non_empty_sizes) << '\n';
     std::cout << "\tvar:        " << stats::variance(non_empty_sizes) << '\n';
     std::cout << "\tstdev       " << stats::stdev(non_empty_sizes) << '\n';
-    std::cout << "\tmedian:     " << stats::median(non_empty_sizes) << '\n';
+    std::cout << "\tlow median: " << stats::lower_median(non_empty_sizes)
+              << '\n';
   }
 
   const std::list<KV> &at(size_t idx) const {

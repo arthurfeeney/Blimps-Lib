@@ -280,3 +280,34 @@ TEST_CASE("lower median simple", "stats") {
   std::vector<int> f{5, 4, 1, 2, 3};
   CHECK(nr::stats::lower_median(f) == 3);
 }
+
+TEST_CASE("upper median simple", "stats") {
+  std::vector<int> a{1, 2, 3};
+  CHECK(nr::stats::upper_median(a) == 2);
+
+  std::vector<int> b{2, 1, 4, 3, 10, 8, 7, 5, 9, 6};
+  CHECK(nr::stats::upper_median(b) == 6);
+
+  std::vector<int> c{1, 2, 3, 4};
+  CHECK(nr::stats::upper_median(c) == 3);
+
+  std::vector<int> d{1, 4, 3, 2};
+  CHECK(nr::stats::upper_median(d) == 3);
+
+  std::vector<int> e{1, 2, 3, 4, 5};
+  CHECK(nr::stats::upper_median(e) == 3);
+
+  std::vector<int> f{5, 4, 1, 2, 3};
+  CHECK(nr::stats::upper_median(f) == 3);
+}
+
+TEST_CASE("lower median = upper median with odd # of elements", "stats") {
+  std::vector<int> a{1, 2, 3};
+  CHECK(nr::stats::lower_median(a) == nr::stats::upper_median(a));
+
+  std::vector<int> b{5, 4, 1, 2, 3};
+  CHECK(nr::stats::lower_median(b) == nr::stats::upper_median(b));
+
+  std::vector<int> c{5, 4, -9, 1, 2, 3, 11, 10, 22, 15, -1, 23, 99, 50, 51};
+  CHECK(nr::stats::lower_median(c) == nr::stats::upper_median(c));
+}

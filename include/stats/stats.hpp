@@ -51,7 +51,7 @@ template <typename Cont> double stdev(const Cont &c) {
   return std::sqrt(variance(c));
 }
 
-template <typename Cont> double median(Cont c) {
+template <typename Cont> double sorted_median(const Cont &c) {
   // don't need to sort(?), but c shouldn't be too large anyway.
   // so the time shouldn't be too bad.
   // returns average of upper and lower median
@@ -62,11 +62,9 @@ template <typename Cont> double median(Cont c) {
     throw std::logic_error("cannot compute medaian of empty container");
   }
 
-  std::sort(c.begin(), c.end());
-
   if (c.size() % 2 == 0) {
     // if there's an even number, take average of middle two.
-    return static_cast<float>(c[c.size() / 2 - 1] + c[c.size() / 2]) / 2.0;
+    return static_cast<double>(c[c.size() / 2 - 1] + c[c.size() / 2]) / 2.0;
   } else {
     return c[c.size() / 2];
   }

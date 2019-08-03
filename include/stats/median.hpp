@@ -68,7 +68,36 @@ Sub lower_median(Cont<Sub> c) {
   }
 
   return random_select(c, 0, c.size() - 1, i);
-  // return c.at(med_idx);
+}
+
+template <template <typename Sub> typename Cont, typename Sub>
+Sub upper_median(Cont<Sub> c) {
+  // if there are an even number of elements, this function returns the
+  // "lower" median. It returns this instead of the average of the two medians.
+  // finds the floor(c.size()/2) smallest element
+
+  int64_t i = c.size() / 2 + 1;
+  // if (c.size() % 2 == 1) {
+  //  ++i;
+  //}
+
+  return random_select(c, 0, c.size() - 1, i);
+}
+
+template <template <typename Sub> typename Cont, typename Sub>
+double median(Cont<Sub> &c) {
+  /*
+   * If there is an even number of elements, find mean of upper
+   * and lower medians. Even though it does two operations, this
+   * is still O(n). If there's an odd number of elements, the
+   * upper and lower medians are the same.
+   */
+  if (c.size() % 2 == 0) {
+    double n1 = static_cast<double>(lower_median(c));
+    double n2 = static_cast<double>(upper_median(c));
+    return (n1 + n2) / 2.0;
+  }
+  return static_cast<double>(lower_median(c));
 }
 
 } // namespace stats
