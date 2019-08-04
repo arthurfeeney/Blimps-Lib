@@ -11,7 +11,7 @@
 
 #include "kv_comparator.hpp"
 #include "multiprobe.hpp"
-#include "simple_lsh.hpp"
+#include "sign_lsh.hpp"
 #include "stat_tracker.hpp"
 #include "stats/stats.hpp"
 #include "stats/topk.hpp"
@@ -23,14 +23,14 @@
 
 namespace nr {
 
-template <typename Vect> class LSH_MultiProbe { //: MultiProbe<Vect> {
+template <typename Vect> class LSH_MultiProbe : public MultiProbe<Vect> {
 private:
   using Component = typename Vect::value_type;
   using KV = std::pair<Vect, int64_t>;
 
   std::vector<std::list<KV>> table;
   int64_t dim;
-  SimpleLSH<Component> hash_function;
+  SignLSH<Component> hash_function;
 
   static double sim(size_t x, size_t y, size_t num_buckets) {
     // finds the number of bits in x and y that are the same.
@@ -80,6 +80,7 @@ public:
     KV neighbor = KV();
     Component min_dist = std::numeric_limits<Component>::max();
 
+    // search through the adj highest ranked buckets for neighbor.
     for (size_t i = 0; i < adj; ++i) {
       tracker.incr_buckets_probed();
       const size_t probe_idx = ranking.at(i);
@@ -97,15 +98,50 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe(int64_t k, const Vect &q, size_t adj) {}
+  k_probe(int64_t k, const Vect &q, size_t adj) {
+    /*
+     * probe adj buckets. Return the k probed vectors that are closest to q
+     */
+  }
 
   std::pair<std::optional<KV>, StatTracker>
-  probe_approx(const Vect &q, Component c, int64_t adj) {}
+  probe_approx(const Vect &q, Component c, int64_t adj) {
+    /*
+     * Probe adj buckets. Return the first vector within distance c of
+     * the query q.
+     */
+    StatTracker tracker;
+
+    const size_t idx = hash_function.hash_max(q, table.size());
+    const std::vector<size_t> ranking(probe_ranking(idx, table.size()));
+
+    for (size_t i = 0; i < adj; ++i) {
+      tracker.incr_buckets_probed();
+      const size_t probe_idx = ranking.at(i);
+      const std::list<KV> &bucket = table.at(probe_idx);
+      for (const KV &x : bucket) {
+        tracker.incr_comparisons();
+        if ((q - x.first).norm() < c) {
+          return std::make_pair(std::make_optional(x), tracker);
+        }
+      }
+    }
+    return std::make_pair(std::nullopt, tracker);
+  }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {}
+  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
+    /*
+     * Comment to fix something?
+     */
+    return std::make_pair(std::nullopt, StatTracker());
+  }
 
-  KV find_max_inner(const Vect &q) {}
+  KV find_max_inner(const Vect &q) {
+    /*
+     * finds the largest inner product in the
+     */
+  }
 
   void print_stats() {}
 
