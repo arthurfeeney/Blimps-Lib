@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "../include/nr_lsh.hpp"
+#include "../include/sign_lsh.hpp"
 #include "../include/simple_lsh.hpp"
 //#include "../include/stats/stats.hpp"
 
@@ -46,7 +47,7 @@ TEST_CASE("P() - pre-processing function correct", "simple_lsh") {
 }
 
 TEST_CASE("numerals to bits", "simple_lsh") {
-  nr::SimpleLSH<float> a(3, 3);
+  nr::SignLSH<float> a(3, 3);
 
   Eigen::VectorXf input(5);
   input << 1, -1, 2, 0, 1;

@@ -61,12 +61,10 @@ Sub lower_median(Cont<Sub> c) {
   // if there are an even number of elements, this function returns the
   // "lower" median. It returns this instead of the average of the two medians.
   // finds the floor(c.size()/2) smallest element
-
   int64_t i = c.size() / 2;
   if (c.size() % 2 == 1) {
     ++i;
   }
-
   return random_select(c, 0, c.size() - 1, i);
 }
 
@@ -75,12 +73,7 @@ Sub upper_median(Cont<Sub> c) {
   // if there are an even number of elements, this function returns the
   // "lower" median. It returns this instead of the average of the two medians.
   // finds the floor(c.size()/2) smallest element
-
   int64_t i = c.size() / 2 + 1;
-  // if (c.size() % 2 == 1) {
-  //  ++i;
-  //}
-
   return random_select(c, 0, c.size() - 1, i);
 }
 
