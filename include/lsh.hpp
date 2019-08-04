@@ -61,9 +61,10 @@ public:
 
   template <typename Cont>
   void fill(const Cont &data, bool is_normalized = false) {
-    for (const KV &datum : data) {
-      const size_t idx = hash_function.hash_max(datum.first, table.size());
-      table.at(idx).push_front(datum);
+    int64_t id = 0;
+    for (const auto &datum : data) {
+      const size_t idx = hash_function.hash_max(datum, table.size());
+      table.at(idx).push_front(std::make_pair(datum, id));
     }
   }
 

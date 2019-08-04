@@ -5,7 +5,9 @@
 #include <pybind11/stl.h>
 #include <vector>
 
+#include "../include/lsh.hpp"
 #include "../include/nr_multiprobe.hpp"
+#include "../include/sign_lsh.hpp"
 #include "../include/simple_lsh.hpp"
 #include "../include/stats/stats.hpp"
 
@@ -20,10 +22,16 @@ PYBIND11_MODULE(nr_binding, m) {
   // Binding for SimpleLSH is primarly for testing it and plotting.
   // hash_max takes an extra argument to
   py::class_<SimpleLSH<float>>(m, "SimpleLSH")
-    .def(py::init<int64_t, int64_t>())
-    .def("bit_count", &SimpleLSH<float>::bit_count)
-    .def("dimension", &SimpleLSH<float>::dimension)
-    .def("hash", &SimpleLSH<float>::hash_max);
+      .def(py::init<int64_t, int64_t>())
+      .def("bit_count", &SimpleLSH<float>::bit_count)
+      .def("dimension", &SimpleLSH<float>::dimension)
+      .def("hash", &SimpleLSH<float>::hash_max);
+
+  py::class_<SignLSH<float>>(m, "SignLSH")
+      .def(py::init<int64_t, int64_t>())
+      .def("bit_count", &SignLSH<float>::bit_count)
+      .def("dimension", &SignLSH<float>::dimension)
+      .def("hash", &SignLSH<float>::hash_max);
 
   // Utility class to allow users to stats.comparisons.
   py::class_<Tracked>(m, "Tracked")
@@ -60,4 +68,26 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("k_probe_approx", &NR_MultiProbe<VectorXf>::k_probe_approx)
       .def("find_max_inner", &NR_MultiProbe<VectorXf>::find_max_inner)
       .def("stats", &NR_MultiProbe<VectorXf>::print_stats);
+
+  // double lsh
+  py::class_<LSH_MultiProbe<VectorXd>>(m, "LSHProbeDouble")
+      .def(py::init<int64_t, int64_t, size_t>())
+      .def("fill", &LSH_MultiProbe<VectorXd>::fill<std::vector<VectorXd>>)
+      .def("probe", &LSH_MultiProbe<VectorXd>::probe)
+      .def("k_probe", &LSH_MultiProbe<VectorXd>::k_probe)
+      .def("probe_approx", &LSH_MultiProbe<VectorXd>::probe_approx)
+      .def("k_probe_approx", &LSH_MultiProbe<VectorXd>::k_probe_approx)
+      .def("find_max_inner", &LSH_MultiProbe<VectorXd>::find_max_inner)
+      .def("stats", &LSH_MultiProbe<VectorXd>::print_stats);
+
+  // float lsh
+  py::class_<LSH_MultiProbe<VectorXf>>(m, "LSHProbeFloat")
+      .def(py::init<int64_t, int64_t, size_t>())
+      .def("fill", &LSH_MultiProbe<VectorXf>::fill<std::vector<VectorXf>>)
+      .def("probe", &LSH_MultiProbe<VectorXf>::probe)
+      .def("k_probe", &LSH_MultiProbe<VectorXf>::k_probe)
+      .def("probe_approx", &LSH_MultiProbe<VectorXf>::probe_approx)
+      .def("k_probe_approx", &LSH_MultiProbe<VectorXf>::k_probe_approx)
+      .def("find_max_inner", &LSH_MultiProbe<VectorXf>::find_max_inner)
+      .def("stats", &LSH_MultiProbe<VectorXf>::print_stats);
 }

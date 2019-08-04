@@ -142,7 +142,7 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_approx(int64_t k, const Vect &q, double c, size_t adj) {
+  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
     // searches until it finds k vectors, x where all x have dot(x, q) > c
     // return probe_table.k_probe_approx(k, q, c);
 
