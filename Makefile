@@ -14,6 +14,7 @@ binding:
 	g++ $(FLAGS) -shared $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) stats.o $(FILE) $(OUT);
 	cp bind/nr_* movielenstest/;
 	cp bind/nr_* synthetic/
+	cp bind/nr_* pyexamples/;
 
 clean:
 	rm bind/nr_binding.so

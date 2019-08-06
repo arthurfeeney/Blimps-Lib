@@ -65,6 +65,7 @@ public:
     for (const auto &datum : data) {
       const size_t idx = hash_function.hash_max(datum, table.size());
       table.at(idx).push_front(std::make_pair(datum, id));
+      ++id;
     }
   }
 
