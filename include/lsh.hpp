@@ -6,6 +6,7 @@
 #include <list>
 #include <numeric>
 #include <optional>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -18,7 +19,7 @@
 #include "tables.hpp"
 
 /*
- * Multiprobe implementation of Locality Sensitive Hashing
+ * Implementation of Mulitprobe Locality Sensitive Hashing
  */
 
 namespace nr {
@@ -46,6 +47,33 @@ private:
       return sim(idx, x, num_buckets) > sim(idx, y, num_buckets);
     });
     return rank;
+  }
+
+  std::vector<size_t> rank(const Vect &q, size_t max_hash, int64_t adj) const {
+    // return indices of the top 'adj' ranked buclets.
+    // not static because it uses the hash function.
+    const size_t idx = hash_function.hash_max(q, max_hash);
+    std::vector<size_t> ranks = probe_ranking(idx, max_hash);
+    return std::vector<size_t>(ranks.begin(), ranks.begin() + adj);
+  }
+
+  void manage_topk(std::vector<std::pair<KV, Component>> &topk, int64_t k,
+                   const Vect &query, KV pos) {
+    /*
+     * Clunky function to track the topk vectors closest to q.
+     */
+    Component dist = (query - pos.first).norm();
+    topk.push_back(std::make_pair(pos, dist));
+    if (topk.size() >= k + 1) {
+      // sorting by distance should be fast.
+      // don't have to recompute distances.
+      std::sort(topk.begin(), topk.end(),
+                [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
+                  return x.second < y.second;
+                });
+      // remove most sitance element.
+      topk.erase(topk.end() - 1);
+    }
   }
 
 public:
@@ -76,18 +104,13 @@ public:
 
     StatTracker tracker;
 
-    const size_t idx = hash_function.hash_max(q, table.size());
-    const std::vector<size_t> ranking(probe_ranking(idx, table.size()));
-
     KV neighbor = KV();
     Component min_dist = std::numeric_limits<Component>::max();
 
-    // search through the adj highest ranked buckets for neighbor.
-    for (size_t i = 0; i < adj; ++i) {
+    // search through the highest ranked buckets for neighbor.
+    for (const size_t &probe_idx : rank(q, table.size(), adj)) {
       tracker.incr_buckets_probed();
-      const size_t probe_idx = ranking.at(i);
-      const std::list<KV> &bucket = table.at(probe_idx);
-      for (const KV &x : bucket) {
+      for (const KV &x : table.at(probe_idx)) {
         tracker.incr_comparisons();
         Component dist = (q - x.first).norm();
         if (dist < min_dist) {
@@ -104,6 +127,31 @@ public:
     /*
      * probe adj buckets. Return the k probed vectors that are closest to q
      */
+    StatTracker tracker;
+
+    // topk is set sorted by distance to query.
+    // distanct objects are at the front. close at at end.
+    std::vector<std::pair<KV, Component>> topk(0);
+
+    for (const size_t &probe_idx : rank(q, table.size(), adj)) {
+      tracker.incr_buckets_probed();
+      for (const KV &x : table.at(probe_idx)) {
+        tracker.incr_comparisons();
+        manage_topk(topk, k, q, x);
+      }
+    }
+
+    // copy topk into vector of proper return type
+    std::vector<KV> topk_out(topk.size());
+    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = 0]() mutable {
+      return topk.at(n).first;
+      ++n;
+    });
+
+    if (topk.size() > 0) {
+      return std::make_pair(std::make_optional(topk_out), tracker);
+    }
+    return std::make_pair(std::nullopt, tracker);
   }
 
   std::pair<std::optional<KV>, StatTracker>
@@ -114,14 +162,9 @@ public:
      */
     StatTracker tracker;
 
-    const size_t idx = hash_function.hash_max(q, table.size());
-    const std::vector<size_t> ranking(probe_ranking(idx, table.size()));
-
-    for (size_t i = 0; i < adj; ++i) {
+    for (const size_t &probe_idx : rank(q, table.size(), adj)) {
       tracker.incr_buckets_probed();
-      const size_t probe_idx = ranking.at(i);
-      const std::list<KV> &bucket = table.at(probe_idx);
-      for (const KV &x : bucket) {
+      for (const KV &x : table.at(probe_idx)) {
         tracker.incr_comparisons();
         if ((q - x.first).norm() < c) {
           return std::make_pair(std::make_optional(x), tracker);
