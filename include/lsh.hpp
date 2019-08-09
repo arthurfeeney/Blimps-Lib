@@ -67,12 +67,13 @@ private:
     if (topk.size() >= k + 1) {
       // sorting by distance should be fast.
       // don't have to recompute distances.
+      // sort most distant to nearest.
       std::sort(topk.begin(), topk.end(),
                 [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
-                  return x.second < y.second;
+                  return x.second > y.second;
                 });
       // remove most sitance element.
-      topk.erase(topk.end() - 1);
+      topk.erase(topk.begin());
     }
   }
 
@@ -126,6 +127,7 @@ public:
   k_probe(int64_t k, const Vect &q, size_t adj) {
     /*
      * probe adj buckets. Return the k probed vectors that are closest to q
+     * output is most distant to nearest.
      */
     StatTracker tracker;
 
@@ -166,7 +168,7 @@ public:
       tracker.incr_buckets_probed();
       for (const KV &x : table.at(probe_idx)) {
         tracker.incr_comparisons();
-        if ((q - x.first).norm() < c) {
+        if ((q - x.first).norm() <= c) {
           return std::make_pair(std::make_optional(x), tracker);
         }
       }
@@ -177,9 +179,34 @@ public:
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
     /*
-     * Comment to fix something?
+     * return the first k neighbors in adj found while searching through
+     * the highest ranked buckets.
+     * Output is most distant found to nearest
      */
-    return std::make_pair(std::nullopt, StatTracker());
+    StatTracker tracker;
+
+    std::vector<KV> topk(0);
+    for (const size_t &probe_idx : rank(q, table.size(), adj)) {
+      tracker.incr_buckets_probed();
+      for (const KV &x : table.at(probe_idx)) {
+        if ((q - x.first).norm() <= c) {
+          topk.push_back(x);
+          if (topk.size() == k) {
+            return std::make_pair(std::make_optional(topk), tracker);
+          }
+        }
+      }
+    }
+
+    // should be sorted distant to nearest.
+    std::sort(topk.begin(), topk.end(), [&q](KV x, KV y) {
+      return (x.first - q).norm() > (y.first - q).norm();
+    });
+
+    if (topk.size() > 0) {
+      return std::make_pair(std::make_optional(topk), tracker);
+    }
+    return std::make_pair(std::nullopt, tracker);
   }
 
   KV find_max_inner(const Vect &q) {

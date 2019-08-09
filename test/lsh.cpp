@@ -79,3 +79,57 @@ TEST_CASE("simple probe_approx", "lsh") {
     REQUIRE(kv.first == expected_out);
   }
 }
+
+TEST_CASE("simple k_probe", "lsh") {
+  LSH_MultiProbe<Eigen::VectorXf> l(10, 3, 2);
+  std::vector<Eigen::VectorXf> data{Eigen::VectorXf(3), Eigen::VectorXf(3),
+                                    Eigen::VectorXf(3)};
+  data.at(0) << .1, .1, .1;
+  data.at(1) << .1, -1, -.1;
+  data.at(2) << .1, .3, .1;
+  l.fill(data);
+  Eigen::VectorXf query(3);
+  query << .1, .2, .1;
+  auto out = l.k_probe(2, query, 1);
+
+  auto kv_opt = out.first;
+
+  if (kv_opt) {
+    auto kv_vect = kv_opt.value();
+    REQUIRE(kv_vect.size() == 2);
+    for (auto &kv : kv_vect) {
+      bool good = kv.first == data.at(0) || kv.first == data.at(2);
+      REQUIRE(good);
+    }
+  }
+}
+
+TEST_CASE("simple k_probe_approx", "lsh") {
+  /*
+   * This is a probability, so it can fail.
+   * Depends on how the hash is initialized.
+   * data.at(1) is longer so it's less likely to be in the same
+   * bucket as the others.
+   */
+  LSH_MultiProbe<Eigen::VectorXf> l(2, 3, 2);
+  std::vector<Eigen::VectorXf> data{Eigen::VectorXf(3), Eigen::VectorXf(3),
+                                    Eigen::VectorXf(3)};
+  data.at(0) << .1, .1, .1;
+  data.at(1) << 1, -1, -1;
+  data.at(2) << .1, .15, .1;
+  l.fill(data);
+  Eigen::VectorXf query(3);
+  query << .1, .2, .1;
+  auto out = l.k_probe_approx(2, query, .5, 1);
+
+  auto kv_opt = out.first;
+
+  if (kv_opt) {
+    auto kv_vect = kv_opt.value();
+    REQUIRE(kv_vect.size() == 2);
+    for (auto &kv : kv_vect) {
+      bool good = kv.first == data.at(0) || kv.first == data.at(2);
+      REQUIRE(good);
+    }
+  }
+}
