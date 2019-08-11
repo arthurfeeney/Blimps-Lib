@@ -56,12 +56,13 @@ def main():
             approx_dist2 = np.linalg.norm(maybe_neighbor[0] - query)
         else:
             approx_dist2 = 0
+
         print('{0:.2f} {1:.2f} {2:.2f}'.format(approx_dist1, approx_dist2,
                                                dist))
 
 
 def generate_data(count, dim):
-    return [np.random.randn(args.dim) for _ in range(count)]
+    return np.random.randn(count, dim)
 
 
 def exact_neighbor(query, data):

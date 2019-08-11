@@ -64,16 +64,16 @@ private:
      */
     Component dist = (query - pos.first).norm();
     topk.push_back(std::make_pair(pos, dist));
+    // sorting by distance should be fast.
+    // don't have to recompute distances.
+    // sort nearest to most distant. Removing last element should be faster
+    std::sort(topk.begin(), topk.end(),
+              [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
+                return x.second < y.second;
+              });
     if (topk.size() >= k + 1) {
-      // sorting by distance should be fast.
-      // don't have to recompute distances.
-      // sort most distant to nearest.
-      std::sort(topk.begin(), topk.end(),
-                [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
-                  return x.second > y.second;
-                });
-      // remove most sitance element.
-      topk.erase(topk.begin());
+      // remove most distant element.
+      topk.pop_back();
     }
   }
 
@@ -142,12 +142,19 @@ public:
         manage_topk(topk, k, q, x);
       }
     }
+    // sort output so it is distant to nearest
+    std::sort(topk.begin(), topk.end(),
+              [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
+                return x.second > y.second;
+              });
 
     // copy topk into vector of proper return type
     std::vector<KV> topk_out(topk.size());
+
+    // copy vectors from topk into topk_out
     std::generate(topk_out.begin(), topk_out.end(), [&topk, n = 0]() mutable {
-      return topk.at(n).first;
       ++n;
+      return topk.at(n - 1).first;
     });
 
     if (topk.size() > 0) {
