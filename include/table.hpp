@@ -135,8 +135,8 @@ public:
 
     // dont look in an empty bucket.
 
-    constexpr double PI = 3.141592653589;
-    constexpr double e = 1e-3;
+    // constexpr double PI = 3.141592653589;
+    // constexpr double e = 1e-3;
     double l = static_cast<double>(
         stats::same_bits(idx, other, std::floor(std::log2(num_buckets)) + 1));
 

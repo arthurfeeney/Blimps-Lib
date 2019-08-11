@@ -75,6 +75,10 @@ public:
   k_probe(int64_t k, const Vect &q, size_t adj) {
     StatTracker tracker;
 
+    if (k < 1) {
+      throw std::runtime_error("NR_MultiProbe::k_probe, k must be positive");
+    }
+
     std::vector<KV> topk(0);
 
     // use each sub-tables rankings to find the top-k largest
@@ -86,7 +90,7 @@ public:
           const std::list<KV> &bucket =
               probe_tables.at(probe).at(t).at(rankings.at(t).at(col));
           for (const KV &item : bucket) {
-            if (topk.size() < k) {
+            if (topk.size() < static_cast<size_t>(k)) {
               topk.push_back(item);
               std::sort(topk.begin(), topk.end(), [&q](KV x, KV y) {
                 return q.dot(x.first) < q.dot(y.first);

@@ -62,6 +62,10 @@ private:
     /*
      * Clunky function to track the topk vectors closest to q.
      */
+    if (k < 1) {
+      throw std::runtime_error(
+          "LSH_MultiProbe::manage_topk, k must be positive");
+    }
     Component dist = (query - pos.first).norm();
     topk.push_back(std::make_pair(pos, dist));
     // sorting by distance should be fast.
@@ -71,7 +75,7 @@ private:
               [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
                 return x.second < y.second;
               });
-    if (topk.size() >= k + 1) {
+    if (topk.size() >= static_cast<size_t>(k + 1)) {
       // remove most distant element.
       topk.pop_back();
     }
@@ -190,6 +194,12 @@ public:
      * the highest ranked buckets.
      * Output is most distant found to nearest
      */
+
+    if (k < 1) {
+      throw std::runtime_error(
+          "LSH_MultiProbe::k_probe_approx, k must be positive");
+    }
+
     StatTracker tracker;
 
     std::vector<KV> topk(0);
@@ -198,7 +208,7 @@ public:
       for (const KV &x : table.at(probe_idx)) {
         if ((q - x.first).norm() <= c) {
           topk.push_back(x);
-          if (topk.size() == k) {
+          if (topk.size() == static_cast<size_t>(k)) {
             return std::make_pair(std::make_optional(topk), tracker);
           }
         }
@@ -220,6 +230,7 @@ public:
     /*
      * finds the largest inner product in the
      */
+    return KV();
   }
 
   void print_stats() {}
