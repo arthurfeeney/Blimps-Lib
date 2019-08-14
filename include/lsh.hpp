@@ -20,6 +20,9 @@
 
 /*
  * Implementation of Mulitprobe Locality Sensitive Hashing
+ * Uses 1 table, but probes multiple buckets that are likely to contain
+ * values near the query.
+ * Pretty fast but has poor recall.
  */
 
 namespace nr {
@@ -85,6 +88,10 @@ public:
   LSH_MultiProbe(int64_t bits, int64_t dimension, size_t num_buckets)
       : table(num_buckets, std::list<KV>()), dim(dimension),
         hash_function(bits, dimension) {}
+
+  LSH_MultiProbe(int64_t bits, int64_t dimension)
+      : table(static_cast<size_t>(std::pow(2, bits)), std::list<KV>()),
+        dim(dimension), hash_function(bits, dimension) {}
 
   LSH_MultiProbe(const LSH_MultiProbe &other) {
     tables(other.tables);
@@ -194,7 +201,6 @@ public:
      * the highest ranked buckets.
      * Output is most distant found to nearest
      */
-
     if (k < 1) {
       throw std::runtime_error(
           "LSH_MultiProbe::k_probe_approx, k must be positive");
@@ -238,6 +244,6 @@ public:
   std::vector<std::list<KV>> data() { return table; }
 
   size_t num_tables() const { return 1; }
-}; // namespace nr
+};
 
 } // namespace nr

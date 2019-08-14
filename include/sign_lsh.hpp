@@ -36,7 +36,6 @@ public:
     NormalMatrix<Component> nm;
     nm.fill_matrix(a);
     fill_bit_mask();
-    std::cout << "hash norm: " << a.norm() << '\n';
   }
 
   int64_t bit_count() const { return bits; }

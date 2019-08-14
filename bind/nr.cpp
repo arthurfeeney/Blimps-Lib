@@ -7,6 +7,7 @@
 
 #include "../include/lsh.hpp"
 #include "../include/nr_multiprobe.hpp"
+#include "../include/p_stable_lsh.hpp"
 #include "../include/sign_lsh.hpp"
 #include "../include/simple_lsh.hpp"
 #include "../include/stats/stats.hpp"
@@ -32,6 +33,12 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("bit_count", &SignLSH<float>::bit_count)
       .def("dimension", &SignLSH<float>::dimension)
       .def("hash", &SignLSH<float>::hash_max);
+
+  py::class_<PStableLSH<float>>(m, "SignLSH")
+      .def(py::init<int64_t>())
+      .def("bit_count", &PStableLSH<float>::bit_count)
+      .def("dimension", &PStableLSH<float>::dimension)
+      .def("hash", &PStableLSH<float>::hash_max);
 
   // Utility class to allow users to stats.comparisons.
   py::class_<Tracked>(m, "Tracked")
@@ -83,6 +90,7 @@ PYBIND11_MODULE(nr_binding, m) {
   // float lsh
   py::class_<LSH_MultiProbe<VectorXf>>(m, "LSHProbeFloat")
       .def(py::init<int64_t, int64_t, size_t>())
+      .def(py::init<int64_t, int64_t>())
       .def("fill", &LSH_MultiProbe<VectorXf>::fill<std::vector<VectorXf>>)
       .def("probe", &LSH_MultiProbe<VectorXf>::probe)
       .def("k_probe", &LSH_MultiProbe<VectorXf>::k_probe)

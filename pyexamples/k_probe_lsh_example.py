@@ -51,7 +51,9 @@ def main():
     queries = generate_data(args.num_queries, args.dim)
 
     # create and fill the LSH table.
-    t = nr_lsh.lsh_table(bits=args.bits, dim=args.dim, num_buckets=args.count)
+    t = nr_lsh.lsh_table(bits=args.bits,
+                         dim=args.dim,
+                         num_buckets=2**args.bits)
     t.fill(data, False)
 
     # lists to track the recalls of each type of probe.
@@ -90,7 +92,7 @@ def main():
 
 
 def generate_data(count, dim):
-    return np.random.randn(count, dim) * 5
+    return np.random.randn(count, dim)
 
 
 def exact_k_neighbor(k, query, data):
