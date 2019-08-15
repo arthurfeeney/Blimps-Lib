@@ -1,6 +1,6 @@
 
 FLAGS = -std=c++17 -Wall -pedantic -O3
-EIGEN = -Iexternal/Eigen/
+EIGEN = -Iexternal/eigen/
 PLOT = -Iexternal/matplotlib-cpp -I/usr/include/python2.7 -lpython2.7
 PYBIND11 = -Iexternal/pybind11/
 fPIC = -fPIC `python -m pybind11 --includes`
