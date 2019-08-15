@@ -34,8 +34,8 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("dimension", &SignLSH<float>::dimension)
       .def("hash", &SignLSH<float>::hash_max);
 
-  py::class_<PStableLSH<float>>(m, "SignLSH")
-      .def(py::init<int64_t>())
+  py::class_<PStableLSH<float>>(m, "PStableLSH")
+      .def(py::init<int64_t, float>())
       .def("bit_count", &PStableLSH<float>::bit_count)
       .def("dimension", &PStableLSH<float>::dimension)
       .def("hash", &PStableLSH<float>::hash_max);

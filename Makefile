@@ -1,9 +1,8 @@
 
 FLAGS = -std=c++17 -Wall -pedantic -O3
-EIGEN = -I/home/afeeney/cpplibs/Eigen/
-PLOT = -I/home/afeeney/cpplibs/matplotlib-cpp -I/usr/include/python2.7 -lpython2.7
-PYBIND11 = -I/home/afeeney/cpplibs/pybind11/
-PLOT = -I/home/afeeney/cpplibs/matplotlib-cpp/ -I/usr/include/python2.7 -lpython2.7
+EIGEN = -Iexternal/Eigen/
+PLOT = -Iexternal/matplotlib-cpp -I/usr/include/python2.7 -lpython2.7
+PYBIND11 = -Iexternal/pybind11/
 fPIC = -fPIC `python -m pybind11 --includes`
 OUT = -o bind/nr_binding`python-config --extension-suffix`
 FILE = bind/nr.cpp
@@ -20,7 +19,7 @@ clean:
 	rm bind/nr_binding.so
 
 TEST = -I/home/afeeney/cpplibs/Catch2/
-CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp test/nr.cpp test/lsh.cpp
+CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp test/nr.cpp test/lsh.cpp test/p_stable_lsh.cpp
 
 catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp

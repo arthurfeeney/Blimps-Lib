@@ -28,14 +28,19 @@ private:
   // The a_i must be drawn from a p-stable distribution.
   // a normal distribution satisfies this and is convenient.
   Vect a;
-  Component b;
-  Component r;
   int64_t dim;
+  Component r;
+  Component b;
 
 public:
-  PStableLSH(int64_t dim) : a(dim), dim(dim) {
+  PStableLSH(int64_t dim, Component r) : a(dim), dim(dim), r(r) {
     NormalMatrix<Component> nm;
     nm.fill_vector(a);
+    // b is selected uniformly from [0, r]
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<Component> dis(0.0, r);
+    b = dis(gen);
   }
 
   int64_t bit_count() const { return 1; }
