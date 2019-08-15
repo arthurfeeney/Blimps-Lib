@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -43,9 +44,11 @@ public:
   }
 
   template <typename Cont> void fill(const Cont &data, bool is_normalized) {
-    // if is_normalized is true, then the data input to the table is
-    // normalized, otherwise, it is inserted as the original unnormalised
-    // value.
+    /*
+     * if is_normalized is true, then the data input to the table is
+     * normalized, otherwise, it is inserted as the original unnormalised
+     * value.
+     */
     for (auto &probe_table : probe_tables) {
       if (data.size() < probe_table.size()) {
         throw std::runtime_error("NR_MultiProbe::fill."
@@ -56,7 +59,10 @@ public:
   }
 
   std::pair<std::optional<KV>, StatTracker> probe(const Vect &q, int64_t adj) {
-    // searches through the first adj most likely buckets
+    /*
+     * returns the vector in adj highest ranked buckets that has
+     * the largest inner product with q.
+     */
 
     StatTracker tracker;
 
@@ -73,43 +79,76 @@ public:
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe(int64_t k, const Vect &q, size_t adj) {
+    /*
+     * returns the k vectors in adj highest ranked buckets that have the largest
+     * inner products with q.
+     */
     StatTracker tracker;
 
     if (k < 1) {
       throw std::runtime_error("NR_MultiProbe::k_probe, k must be positive");
     }
 
-    std::vector<KV> topk(0);
+    // store KV pair and the inner product value with q; avoid recomputing
+    // inner each time it is sorted and searching for min element.
+    std::vector<std::pair<KV, Component>> topk(0);
+    // reserve memory now so it never needs to be resized in loops.
+    topk.reserve(k + 1);
+    Component smallest_inner = -9999;
 
     // use each sub-tables rankings to find the top-k largest
     // items of all the buckets.
     for (size_t probe = 0; probe < probe_tables.size(); ++probe) {
-      auto rankings = probe_tables.at(probe).rank_around_query(q);
+      auto &&rankings = probe_tables.at(probe).rank_around_query(q, adj);
       for (size_t col = 0; col < adj; ++col) {
         for (size_t t = 0; t < probe_tables.at(probe).size(); ++t) {
           const std::list<KV> &bucket =
               probe_tables.at(probe).at(t).at(rankings.at(t).at(col));
           for (const KV &item : bucket) {
-            if (topk.size() < static_cast<size_t>(k)) {
-              topk.push_back(item);
-              std::sort(topk.begin(), topk.end(), [&q](KV x, KV y) {
-                return q.dot(x.first) < q.dot(y.first);
-              });
-            } else {
-              stats::insert_inplace(item, topk, [&q](KV x, KV y) {
-                return q.dot(x.first) > q.dot(y.first);
-              });
+            Component inner = q.dot(item.first);
+
+            // only add things larger than the smallest inner in the topk.
+            if (inner > smallest_inner) {
+              topk.push_back({item, inner});
+              std::sort(topk.begin(), topk.end(),
+                        [](const std::pair<KV, Component> &x,
+                           const std::pair<KV, Component> &y) {
+                          return x.second > y.second;
+                        });
+              if (topk.size() >= static_cast<size_t>(k + 1)) {
+                // remove smallest inner from topk.
+                topk.pop_back();
+              }
+              auto m = *std::min_element(topk.begin(), topk.end(),
+                                         [](const std::pair<KV, Component> &x,
+                                            const std::pair<KV, Component> &y) {
+                                           return x.second < y.second;
+                                         });
+              smallest_inner = m.second;
             }
           }
         }
       }
     }
-    return std::make_pair(topk, tracker);
+
+    // reverse because we want smallest inner to largest.
+    std::reverse(topk.begin(), topk.end());
+
+    std::vector<KV> topk_out(topk.size());
+    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = -1]() mutable {
+      ++n;
+      return topk.at(n).first;
+    });
+
+    return {topk_out, tracker};
   }
 
   std::pair<std::optional<KV>, StatTracker>
   probe_approx(const Vect &q, Component c, int64_t adj) {
-    // searches until it finds some x with dot(x, q) > c
+    /*
+     * returns the first vector in adj highest ranked buckets that has
+     * an inner product with q that is greater than c.
+     */
     StatTracker tracker;
 
     for (auto &probe_table : probe_tables) {
@@ -147,9 +186,10 @@ public:
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
-    // searches until it finds k vectors, x where all x have dot(x, q) > c
-    // return probe_table.k_probe_approx(k, q, c);
-
+    /*
+     * returns the k vectors from adj buckets that have the largest inner
+     * products with q.
+     */
     StatTracker tracker;
 
     std::vector<KV> vects(0);
@@ -188,6 +228,6 @@ public:
   }
 
   size_t num_tables() const { return probe_tables.size(); }
-};
+}; // namespace nr
 
 } // namespace nr

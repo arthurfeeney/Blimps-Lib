@@ -39,7 +39,7 @@ int main() {
     // int64_t bits = sizes.first;
     // int64_t num_tables = sizes.second;
     // std::cout << bits << ' ' << num_tables << "\n\n\n";
-    nr::NR_MultiProbe<VectorXf> probe(2, 1, 48, dim, std::pow(2, 16));
+    nr::NR_MultiProbe<VectorXf> probe(8, 1, 16, dim, std::pow(2, 16));
 
     probe.fill(data, false);
 

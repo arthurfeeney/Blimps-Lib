@@ -139,5 +139,39 @@ std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c,
   return make_pair(topk, topk_idx);
 }
 
+/*
+ * version of topk that uses greater and less to find topk of a range of values.
+ * default output type is vector of some comparable type.
+ * Useful because space complexity is O(k) It never needs to hold any other
+ * data.
+ * Outputs topk in reverse order, so that the largest is in front.
+ */
+
+template <typename Ordered, typename Greater, typename Less,
+          typename Out = std::vector<Ordered>>
+Out topk(int64_t k, Ordered low, Ordered high, Greater greater, Less less) {
+  if (k < 1) {
+    throw std::logic_error("stats::topk, k must be positive.");
+  }
+  Out topk(k);
+
+  std::generate(topk.begin(), topk.end(),
+                [iter = low - 1]() mutable { return ++iter; });
+
+  std::sort(topk.begin(), topk.end(),
+            [&](Ordered x, Ordered y) { return less(x, y); });
+
+  Ordered minimum = -999999;
+
+  for (Ordered iter = low + k; iter < high; ++iter) {
+    if (greater(iter, minimum)) {
+      insert_inplace(iter, topk, greater);
+      minimum = *std::min_element(topk.begin(), topk.end(), less);
+    }
+  }
+  std::reverse(topk.begin(), topk.end());
+  return topk;
+}
+
 } // namespace stats
 } // namespace nr

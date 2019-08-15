@@ -27,14 +27,16 @@
 
 namespace nr {
 
-template <typename Vect> class LSH_MultiProbe : public MultiProbe<Vect> {
+template <typename Vect, typename Hash = SignLSH<typename Vect::value_type>>
+class LSH_MultiProbe : public MultiProbe<Vect> {
 private:
   using Component = typename Vect::value_type;
   using KV = std::pair<Vect, int64_t>;
 
   std::vector<std::list<KV>> table;
   int64_t dim;
-  SignLSH<Component> hash_function;
+  // defaults to SignLSH, but user can pass in a PStableLSH.
+  Hash hash_function;
 
   static double sim(size_t x, size_t y, size_t num_buckets) {
     // finds the number of bits in x and y that are the same.
@@ -109,29 +111,43 @@ public:
     }
   }
 
-  std::pair<std::optional<KV>, StatTracker> probe(const Vect &q, int64_t adj) {
+  template <typename Op>
+  void iter_table(const Vect &q, int64_t adj, StatTracker &tracker, Op op) {
     /*
-     * Probe adj buckets. Return vector closest to q.
+     * The probe functions iterate through all adj buckets.
+     * Using this function avoids a lot of code duplication.
+     * The specific operation used by the probe function is passed in.
      */
-
-    StatTracker tracker;
-
-    KV neighbor = KV();
-    Component min_dist = std::numeric_limits<Component>::max();
-
-    // search through the highest ranked buckets for neighbor.
     for (const size_t &probe_idx : rank(q, table.size(), adj)) {
       tracker.incr_buckets_probed();
       for (const KV &x : table.at(probe_idx)) {
         tracker.incr_comparisons();
-        Component dist = (q - x.first).norm();
-        if (dist < min_dist) {
-          neighbor = x;
-          min_dist = dist;
-        }
+        op(q, x);
       }
     }
-    return std::make_pair(std::make_optional(neighbor), tracker);
+  }
+
+  std::pair<std::optional<KV>, StatTracker> probe(const Vect &q, int64_t adj) {
+    /*
+     * Probe adj buckets. Return vector closest to q.
+     */
+    StatTracker tracker;
+    KV neighbor = KV();
+    Component min_dist = std::numeric_limits<Component>::max();
+    // search through the highest ranked buckets for neighbor.
+    iter_table(q, adj, tracker,
+               [&neighbor, &min_dist](const Vect &q, const KV &x) {
+                 Component dist = (q - x.first).norm();
+                 if (dist < min_dist) {
+                   neighbor = x;
+                   min_dist = dist;
+                 }
+               });
+    if (min_dist == std::numeric_limits<Component>::max()) {
+      // only probed empty buckets, so min-dist didn't change.
+      return {std::nullopt, tracker};
+    }
+    return {std::make_optional(neighbor), tracker};
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
@@ -141,37 +157,37 @@ public:
      * output is most distant to nearest.
      */
     StatTracker tracker;
-
     // topk is set sorted by distance to query.
     // distanct objects are at the front. close at at end.
     std::vector<std::pair<KV, Component>> topk(0);
 
-    for (const size_t &probe_idx : rank(q, table.size(), adj)) {
-      tracker.incr_buckets_probed();
-      for (const KV &x : table.at(probe_idx)) {
-        tracker.incr_comparisons();
-        manage_topk(topk, k, q, x);
-      }
+    // sketchy? Passing this allows manage_topk to be called.
+    iter_table(q, adj, tracker, [this, &topk, &k](const Vect &q, const KV &x) {
+      this->manage_topk(topk, k, q, x);
+    });
+
+    return proc_k_probe_output(topk, tracker);
+  }
+
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  proc_k_probe_output(std::vector<std::pair<KV, Component>> &topk,
+                      const StatTracker &tracker) const {
+    if (topk.size() == 0) {
+      return {std::nullopt, tracker};
     }
     // sort output so it is distant to nearest
-    std::sort(topk.begin(), topk.end(),
-              [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
-                return x.second > y.second;
-              });
+    std::sort(
+        topk.begin(), topk.end(),
+        [](const std::pair<KV, Component> &x,
+           const std::pair<KV, Component> &y) { return x.second > y.second; });
 
     // copy topk into vector of proper return type
     std::vector<KV> topk_out(topk.size());
-
-    // copy vectors from topk into topk_out
-    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = 0]() mutable {
+    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = -1]() mutable {
       ++n;
-      return topk.at(n - 1).first;
+      return topk.at(n).first;
     });
-
-    if (topk.size() > 0) {
-      return std::make_pair(std::make_optional(topk_out), tracker);
-    }
-    return std::make_pair(std::nullopt, tracker);
+    return {std::make_optional(topk_out), tracker};
   }
 
   std::pair<std::optional<KV>, StatTracker>
@@ -187,11 +203,11 @@ public:
       for (const KV &x : table.at(probe_idx)) {
         tracker.incr_comparisons();
         if ((q - x.first).norm() <= c) {
-          return std::make_pair(std::make_optional(x), tracker);
+          return {std::make_optional(x), tracker};
         }
       }
     }
-    return std::make_pair(std::nullopt, tracker);
+    return {std::nullopt, tracker};
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
@@ -212,31 +228,32 @@ public:
     for (const size_t &probe_idx : rank(q, table.size(), adj)) {
       tracker.incr_buckets_probed();
       for (const KV &x : table.at(probe_idx)) {
+        tracker.incr_comparisons();
         if ((q - x.first).norm() <= c) {
           topk.push_back(x);
           if (topk.size() == static_cast<size_t>(k)) {
-            return std::make_pair(std::make_optional(topk), tracker);
+            return proc_k_probe_approx_output(q, topk, tracker);
           }
         }
       }
     }
+    return proc_k_probe_approx_output(q, topk, tracker);
+  }
 
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  proc_k_probe_approx_output(const Vect &q, std::vector<KV> &topk,
+                             StatTracker &tracker) const {
+    /*
+     * Function to format the topk items found.
+     */
+    if (topk.size() == 0) {
+      return {std::nullopt, tracker};
+    }
     // should be sorted distant to nearest.
     std::sort(topk.begin(), topk.end(), [&q](KV x, KV y) {
       return (x.first - q).norm() > (y.first - q).norm();
     });
-
-    if (topk.size() > 0) {
-      return std::make_pair(std::make_optional(topk), tracker);
-    }
-    return std::make_pair(std::nullopt, tracker);
-  }
-
-  KV find_max_inner(const Vect &q) {
-    /*
-     * finds the largest inner product in the
-     */
-    return KV();
+    return {std::make_optional(topk), tracker};
   }
 
   void print_stats() {}

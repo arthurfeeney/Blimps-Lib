@@ -174,6 +174,32 @@ TEST_CASE("topk with comp", "stats") {
               .first == std::vector{1});
 }
 
+TEST_CASE("topk range with comp", "stats") {
+  auto t1 = nr::stats::topk(
+      2, 0, 5, [](int x, int y) { return x > y; },
+      [](int x, int y) { return x < y; });
+  REQUIRE(t1 == std::vector{4, 3});
+
+  auto t2 = nr::stats::topk(
+      2, 0, 5, [](int x, int y) { return x < y; },
+      [](int x, int y) { return x > y; });
+  REQUIRE(t2 == std::vector{0, 1});
+}
+
+TEST_CASE("topk range with complex comp", "stats") {
+  int q = 2;
+  auto t1 = nr::stats::topk(
+      1, 0, 10, [&q](int x, int y) { return q * x > q * y; },
+      [&q](int x, int y) { return q * x<q> y; });
+  REQUIRE(t1 == std::vector{9});
+
+  q = -2;
+  auto t2 = nr::stats::topk(
+      1, 0, 10, [&q](int x, int y) { return q * x > q * y; },
+      [&q](int x, int y) { return q * x<q> y; });
+  REQUIRE(t2 == std::vector{0});
+}
+
 TEST_CASE("unique", "stats") {
   std::vector<int> a{1, 1, 3, 2, 2, 3, 5};
   REQUIRE(nr::stats::unique(a).first == std::vector{1, 3, 2, 5});

@@ -165,7 +165,7 @@ public:
     mp mp_hash = hash(q);
     mp residue = mp_hash % num_buckets;
     int64_t idx = residue.convert_to<int64_t>();
-    auto rankings = sub_tables_rankings(idx);
+    auto rankings = sub_tables_rankings(idx, n_to_probe);
 
     std::vector<KV> vects(0);
     // look through the top n_to_probe ranked buckets.
@@ -185,28 +185,27 @@ public:
     }
   }
 
-  std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx) const {
+  std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx,
+                                                        int64_t k) const {
     std::vector<std::vector<int64_t>> rankings(tables.size());
     for (size_t i = 0; i < tables.size(); ++i) {
-      rankings.at(i) = tables.at(i).probe_ranking(idx);
+      rankings.at(i) = tables.at(i).probe_ranking(idx, k);
     }
 
     return rankings;
   }
 
-  std::vector<std::vector<int64_t>> rank_around_query(const Vect &q) const {
-    using mp = boost::multiprecision::cpp_int;
-    mp mp_hash = hash(q);
-    mp residue = mp_hash % num_buckets;
-    int64_t idx = residue.convert_to<int64_t>();
-    return sub_tables_rankings(idx);
+  std::vector<std::vector<int64_t>> rank_around_query(const Vect &q,
+                                                      int64_t adj) const {
+    int64_t idx = static_cast<int64_t>(hash.hash_max(q, num_buckets));
+    return sub_tables_rankings(idx, adj);
   }
 
   std::pair<std::optional<KV>, StatTracker>
   probe_approx(const Vect &q, Component c, int64_t adj) const {
     StatTracker table_tracker;
 
-    auto rankings = rank_around_query(q);
+    auto rankings = rank_around_query(q, adj);
     // iterate column major though rankings until dot(q, x) > c is found.
     // look through adj other buckets. Should be the top ranked ones.
     // probes the best bucket of each table first.
@@ -240,7 +239,7 @@ public:
     mp mp_hash = hash(q);
     mp residue = mp_hash % num_buckets;
     int64_t idx = residue.convert_to<int64_t>();
-    auto rankings = sub_tables_rankings(idx);
+    auto rankings = sub_tables_rankings(idx, adj);
 
     std::vector<KV> vects(0);
     for (size_t col = 0; col < adj; ++col) {
@@ -289,7 +288,7 @@ public:
     return (*this)[idx];
   }
 
-  const Table<Vect> &operator[](int idx) const { return tables[idx]; }
+  const Table<Vect> &operator[](size_t idx) const { return tables[idx]; }
 
   size_t size() const { return tables.size(); }
 

@@ -21,7 +21,7 @@ def main():
     u, vt, review_matrix_csr = df_to_matrix(train, factors)
     test = [tuple(i) for i in test[['userid', 'movieidx', 'rating']].values]
 
-    n = create_tables(vt, 1, 1, 32, 50)
+    n = create_tables(vt, 4, 1, 32, 50)
 
     mips_recall, hit_recall = pe.MIPS_recall(
         5,

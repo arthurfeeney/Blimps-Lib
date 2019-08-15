@@ -85,7 +85,6 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("k_probe", &LSH_MultiProbe<VectorXd>::k_probe)
       .def("probe_approx", &LSH_MultiProbe<VectorXd>::probe_approx)
       .def("k_probe_approx", &LSH_MultiProbe<VectorXd>::k_probe_approx)
-      .def("find_max_inner", &LSH_MultiProbe<VectorXd>::find_max_inner)
       .def("stats", &LSH_MultiProbe<VectorXd>::print_stats);
 
   // float lsh
@@ -97,6 +96,5 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("k_probe", &LSH_MultiProbe<VectorXf>::k_probe)
       .def("probe_approx", &LSH_MultiProbe<VectorXf>::probe_approx)
       .def("k_probe_approx", &LSH_MultiProbe<VectorXf>::k_probe_approx)
-      .def("find_max_inner", &LSH_MultiProbe<VectorXf>::find_max_inner)
       .def("stats", &LSH_MultiProbe<VectorXf>::print_stats);
 }

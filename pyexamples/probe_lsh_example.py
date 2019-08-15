@@ -39,7 +39,7 @@ def main():
     queries = generate_data(args.num_queries, args.dim)
 
     # create and fill the LSH table.
-    t = nr_lsh.lsh_table(bits=32, dim=args.dim, num_buckets=args.count)
+    t = nr_lsh.lsh_table(bits=17, dim=args.dim, num_buckets=args.count)
     t.fill(data, False)
 
     # "multiprobe" query the table.

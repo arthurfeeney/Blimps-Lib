@@ -13,7 +13,6 @@
 
 /*
  * p-stable LSH family.
- * Similar to SimpleLSH, but does not use P(), and a isn't dim + 1
  */
 
 namespace mp = boost::multiprecision;
@@ -21,8 +20,7 @@ namespace nr {
 
 template <typename Component> class PStableLSH : public LSH_Family<Component> {
 private:
-  // use the proper matrix and vector type for component.
-  using Matrix = typename MatrixXf_or_Xd<Component>::type;
+  // use the proper vector type for component.
   using Vect = typename VectorXf_or_Xd<Component>::type;
 
   // The a_i must be drawn from a p-stable distribution.
@@ -50,8 +48,6 @@ public:
   mp::cpp_int operator()(const Vect &input) const { return hash(input); }
 
   mp::cpp_int hash(const Vect &input) const {
-    // with a large number of hashes, it can become larger than 64 bit.
-    // have to use multiprecision.
     Component h = floor((a.dot(input) + b) / r);
     return mp::cpp_int(h);
   }

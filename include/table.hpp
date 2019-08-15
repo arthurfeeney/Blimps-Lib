@@ -32,6 +32,8 @@ private:
   SimpleLSH<Component> hash;
   typename Vect::value_type normalizer; // this partitions Up normalizer
 
+  std::unordered_map<int64_t, std::vector<int64_t>> similar;
+
 public:
   Table(SimpleLSH<Component> hash, size_t num_buckets)
       : num_buckets(num_buckets), table(num_buckets), hash(hash),
@@ -44,7 +46,7 @@ public:
     for (size_t i = 0; i < indices.size(); ++i) {
       KV to_insert = std::make_pair(normalized_partition.at(i), ids.at(i));
 
-      // modulo done in index builder. Don't need to repeat it.
+      // modulo is done in the index builder. Don't need to repeat it.
       size_t bucket_idx = indices.at(i);
 
       if (is_normalized) {
@@ -106,7 +108,7 @@ public:
 
     StatTracker partition_tracker;
 
-    std::vector<int64_t> rank = probe_ranking(idx);
+    std::vector<int64_t> rank = probe_ranking(idx, n_to_probe);
     // initialize to impossible values
     KV max = std::make_pair(Vect(1), -1);
     double big_dot = std::numeric_limits<Component>::min();
@@ -147,15 +149,17 @@ public:
     // return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));
   }
 
-  std::vector<int64_t> probe_ranking(int64_t idx) const {
-    std::vector<int64_t> rank(table.size(), 0);
-    std::iota(rank.begin(), rank.end(), 0);
-
-    // sort in descending order. Most similar in the front.
-    std::sort(rank.begin(), rank.end(),
-              [&](int64_t x, int64_t y) { return sim(idx, x) > sim(idx, y); });
-
-    return rank;
+  std::vector<int64_t> probe_ranking(int64_t idx, int64_t adj) const {
+    /*
+    auto sim_it = similar.find(idx);
+    if (sim_it != similar.end()) {
+      return (*sim_it).second;
+    }
+    */
+    return stats::topk<int64_t>(
+        adj, static_cast<int64_t>(0), static_cast<int64_t>(num_buckets),
+        [&](int64_t x, int64_t y) { return sim(idx, x) > sim(idx, y); },
+        [&](int64_t x, int64_t y) { return sim(idx, x) < sim(idx, y); });
   }
 
   std::vector<KV> topk_in_bucket(int64_t k, int64_t bucket,

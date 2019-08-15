@@ -72,7 +72,8 @@ def main():
         rec1 = recall(neighbors, indices)
         k_probe_recall.append(rec1)
 
-        maybe_neighbors, stats = t.k_probe_approx(args.k, query, 2.0, args.adj)
+        maybe_neighbors, stats = t.k_probe_approx(args.k, query, 0.05,
+                                                  args.adj)
         if (maybe_neighbors):
             neighbors = list(list(zip(*maybe_neighbors))[1])
             rec2 = recall(neighbors, indices)

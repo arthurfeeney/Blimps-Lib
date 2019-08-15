@@ -94,7 +94,7 @@ TEST_CASE("Test table ranking", "table") {
   float Up = .75;
   t.fill(partition, indices, ids, Up, false);
 
-  REQUIRE(t.probe_ranking(1) == std::vector<int64_t>{1, 0, 2});
+  REQUIRE(t.probe_ranking(1, 3) == std::vector<int64_t>{1, 0, 2});
 
-  REQUIRE(t.probe_ranking(2) == std::vector<int64_t>{2, 0, 1});
+  REQUIRE(t.probe_ranking(2, 3) == std::vector<int64_t>{2, 0, 1});
 }

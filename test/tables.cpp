@@ -26,7 +26,7 @@ TEST_CASE("sub tables rankings", "tables") {
   REQUIRE(tables.size() == 2);
 
   // 1 is more similar to 1 than 0.
-  std::vector<std::vector<int64_t>> rank = tables.sub_tables_rankings(1);
+  std::vector<std::vector<int64_t>> rank = tables.sub_tables_rankings(1, 2);
   CHECK(rank.at(0).at(0) == 1);
   CHECK(rank.at(0).at(1) == 0);
   CHECK(rank.at(1).at(0) == 1);

@@ -40,8 +40,6 @@ public:
   virtual std::pair<std::optional<std::vector<KV>>, StatTracker>
   k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) = 0;
 
-  virtual KV find_max_inner(const Vect &q) = 0;
-
   virtual void print_stats() = 0;
 
   virtual size_t num_tables() const = 0;
