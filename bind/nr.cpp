@@ -17,6 +17,7 @@ using namespace nr;
 using namespace Eigen;
 
 PYBIND11_MODULE(nr_binding, m) {
+  // hello
 
   m.def("same_bits", &stats::same_bits);
 

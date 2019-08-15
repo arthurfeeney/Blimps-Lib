@@ -18,7 +18,7 @@ binding:
 clean:
 	rm bind/nr_binding.so
 
-TEST = -I/home/afeeney/cpplibs/Catch2/
+TEST = -Iexternal/Catch2/
 CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp test/nr.cpp test/lsh.cpp test/p_stable_lsh.cpp
 
 catch:
