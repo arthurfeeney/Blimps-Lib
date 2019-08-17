@@ -83,66 +83,105 @@ public:
      * returns the k vectors in adj highest ranked buckets that have the largest
      * inner products with q.
      */
+    if (k < 1)
+      throw std::runtime_error("NR_MultiProbe::k_probe, k < 1");
+
     StatTracker tracker;
 
-    if (k < 1) {
-      throw std::runtime_error("NR_MultiProbe::k_probe, k must be positive");
-    }
-
     // store KV pair and the inner product value with q; avoid recomputing
-    // inner each time it is sorted and searching for min element.
     std::vector<std::pair<KV, Component>> topk(0);
+
     // reserve memory now so it never needs to be resized in loops.
     topk.reserve(k + 1);
-    Component smallest_inner = std::numeric_limits<Component>::min();
 
-    // use each sub-tables rankings to find the top-k largest
-    // items of all the buckets.
+    k_probe_tables(k, q, adj, topk);
+
+    // copy output to just a vector of KV.
+    std::vector<KV> topk_out(topk.size());
+    std::generate(topk_out.begin(), topk_out.end(),
+                  [&topk, n = -1]() mutable { return topk.at(++n).first; });
+    return {topk_out, tracker};
+  }
+
+  void k_probe_tables(int64_t k, const Vect &q, size_t adj,
+                      std::vector<std::pair<KV, Component>> &topk) {
+    /*
+     * Iterates over each probe_table.
+     * In each probe_table, it starts iterating over the highest ranked
+     * buckets of each partition and works it way down to the lowest ranked
+     * buckets.
+     */
+    Component smallest_inner = std::numeric_limits<Component>::min();
     for (size_t probe = 0; probe < probe_tables.size(); ++probe) {
       const auto rankings(probe_tables.at(probe).rank_around_query(q, adj));
       for (size_t col = 0; col < adj; ++col) {
         for (size_t t = 0; t < probe_tables.at(probe).size(); ++t) {
           const std::list<KV> &bucket =
               probe_tables.at(probe).at(t).at(rankings.at(t).at(col));
-          for (const KV &item : bucket) {
-            // compute the inner product with query
-            const Component inner = q.dot(item.first);
-
-            if (topk.size() < k) {
-              // for the first k iterations, just put stuff in the topk.
-              topk.push_back({item, inner});
-              std::sort(topk.begin(), topk.end(),
-                        [](const std::pair<KV, Component> &x,
-                           const std::pair<KV, Component> &y) {
-                          return x.second < y.second;
-                        });
-            } else if (inner > smallest_inner) {
-              // only add things larger than the smallest inner in the topk.
-              stats::insert_unique_inplace(
-                  {item, inner}, topk,
-                  [](const std::pair<KV, Component> &x,
-                     const std::pair<KV, Component> &y) {
-                    return x.second > y.second;
-                  },
-                  // two items are equal if they have the same id.
-                  [](const std::pair<KV, Component> &x,
-                     const std::pair<KV, Component> &y) {
-                    return x.first.second == y.first.second;
-                  });
-              // since a new item larger than the smallest element of topk
-              // was added, there is a new smallest inner.
-              smallest_inner = topk.at(0).second;
-            }
-          }
+          smallest_inner = probe_bucket(k, q, bucket, smallest_inner, topk);
         }
       }
     }
-    std::vector<KV> topk_out(topk.size());
-    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = -1]() mutable {
-      ++n;
-      return topk.at(n).first;
-    });
-    return {topk_out, tracker};
+  }
+
+  Component probe_bucket(int64_t k, const Vect &q, const std::list<KV> &bucket,
+                         Component smallest_inner,
+                         std::vector<std::pair<KV, Component>> &topk) {
+    /*
+     * Iterates cross the bucket looking for inner products that are larger
+     * than the current smallest inner product in the topk.
+     * If something is smallet than the smallest thing in the topk, it clearly
+     * is not in the topk and can be skipped!
+     *
+     * if less than k items have been found so far, it just adds them into
+     * the topk.
+     */
+    for (const KV &item : bucket) {
+      const Component inner = q.dot(item.first);
+      if (topk.size() < static_cast<size_t>(k)) {
+        build_topk({item, inner}, topk);
+      } else if (inner > smallest_inner) {
+        insert_in_topk({item, inner}, topk);
+
+        // since a new item larger than the smallest element of topk
+        // was added, there is a new smallest inner.
+        smallest_inner = topk.at(0).second;
+      }
+    }
+    return smallest_inner;
+  }
+
+  void build_topk(const std::pair<KV, Component> &to_add,
+                  std::vector<std::pair<KV, Component>> &topk) {
+    /*
+     * Add to_add to the top and sort it.
+     * keeping it sorted is necessary since the smallest element is in the
+     * front of the topk.
+     */
+    topk.push_back(to_add);
+    std::sort(
+        topk.begin(), topk.end(),
+        [](const std::pair<KV, Component> &x,
+           const std::pair<KV, Component> &y) { return x.second < y.second; });
+  }
+
+  void insert_in_topk(const std::pair<KV, Component> &to_add,
+                      std::vector<std::pair<KV, Component>> &topk) {
+    /*
+     * inserts values into the topk inplace. The previous smallest value is
+     * automatically overwritten, so the size stays at k.
+     *
+     * takes two comparator functions: greater and equality.
+     */
+    stats::insert_unique_inplace(
+        to_add, topk,
+        [](const std::pair<KV, Component> &x,
+           const std::pair<KV, Component> &y) { return x.second > y.second; },
+        // two items are equal if they have the same id.
+        [](const std::pair<KV, Component> &x,
+           const std::pair<KV, Component> &y) {
+          return x.first.second == y.first.second;
+        });
   }
 
   std::pair<std::optional<KV>, StatTracker>
@@ -162,28 +201,6 @@ public:
       }
     }
     return std::make_pair(std::nullopt, tracker);
-  }
-
-  static typename std::vector<KV>::const_iterator
-  find_value(const std::vector<KV> &vects, int64_t value) {
-    for (auto iter = vects.begin(); iter != vects.end(); ++iter) {
-      if ((*iter).second == value) {
-        return iter;
-      }
-    }
-    return vects.end();
-  }
-
-  static void insert_kv(std::vector<KV> &vects,
-                        const std::vector<KV> &to_insert) {
-    // inserts only key-value pairs with unique values.
-    // modifies in-place.
-    for (auto &kv : to_insert) {
-      if (find_value(vects, kv.second) == vects.end()) {
-        // kv is not in vects.
-        vects.push_back(kv);
-      }
-    }
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
@@ -221,6 +238,28 @@ public:
      * just looks through a single probe_tyable since it will contain everything
      */
     return probe_tables.at(0).MIPS(q).second;
+  }
+
+  static typename std::vector<KV>::const_iterator
+  find_value(const std::vector<KV> &vects, int64_t value) {
+    for (auto iter = vects.begin(); iter != vects.end(); ++iter) {
+      if ((*iter).second == value) {
+        return iter;
+      }
+    }
+    return vects.end();
+  }
+
+  static void insert_kv(std::vector<KV> &vects,
+                        const std::vector<KV> &to_insert) {
+    // inserts only key-value pairs with unique values.
+    // modifies in-place.
+    for (auto &kv : to_insert) {
+      if (find_value(vects, kv.second) == vects.end()) {
+        // kv is not in vects.
+        vects.push_back(kv);
+      }
+    }
   }
 
   void print_stats() {
