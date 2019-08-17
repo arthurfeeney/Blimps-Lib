@@ -178,7 +178,7 @@ def MIPS_recall(k, test_ratings, item_factors, nr_table, review_matrix_csr,
         # probe k from the nr table.
         query = user_ratings.dot(item_factors)
         query /= np.linalg.norm(query)  # queries are unit vectors
-        data, tracker = nr_table.k_probe(k, query, int(10))
+        data, tracker = nr_table.k_probe(k, query, int(100))
 
         if data:
             _, approx_idx = zip(*data)

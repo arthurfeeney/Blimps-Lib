@@ -94,52 +94,54 @@ public:
     std::vector<std::pair<KV, Component>> topk(0);
     // reserve memory now so it never needs to be resized in loops.
     topk.reserve(k + 1);
-    Component smallest_inner = -9999;
+    Component smallest_inner = std::numeric_limits<Component>::min();
 
     // use each sub-tables rankings to find the top-k largest
     // items of all the buckets.
     for (size_t probe = 0; probe < probe_tables.size(); ++probe) {
-      auto &&rankings = probe_tables.at(probe).rank_around_query(q, adj);
+      const auto rankings(probe_tables.at(probe).rank_around_query(q, adj));
       for (size_t col = 0; col < adj; ++col) {
         for (size_t t = 0; t < probe_tables.at(probe).size(); ++t) {
           const std::list<KV> &bucket =
               probe_tables.at(probe).at(t).at(rankings.at(t).at(col));
           for (const KV &item : bucket) {
-            Component inner = q.dot(item.first);
+            // compute the inner product with query
+            const Component inner = q.dot(item.first);
 
-            // only add things larger than the smallest inner in the topk.
-            if (inner > smallest_inner) {
+            if (topk.size() < k) {
+              // for the first k iterations, just put stuff in the topk.
               topk.push_back({item, inner});
               std::sort(topk.begin(), topk.end(),
                         [](const std::pair<KV, Component> &x,
                            const std::pair<KV, Component> &y) {
-                          return x.second > y.second;
+                          return x.second < y.second;
                         });
-              if (topk.size() >= static_cast<size_t>(k + 1)) {
-                // remove smallest inner from topk.
-                topk.pop_back();
-              }
-              auto m = *std::min_element(topk.begin(), topk.end(),
-                                         [](const std::pair<KV, Component> &x,
-                                            const std::pair<KV, Component> &y) {
-                                           return x.second < y.second;
-                                         });
-              smallest_inner = m.second;
+            } else if (inner > smallest_inner) {
+              // only add things larger than the smallest inner in the topk.
+              stats::insert_unique_inplace(
+                  {item, inner}, topk,
+                  [](const std::pair<KV, Component> &x,
+                     const std::pair<KV, Component> &y) {
+                    return x.second > y.second;
+                  },
+                  // two items are equal if they have the same id.
+                  [](const std::pair<KV, Component> &x,
+                     const std::pair<KV, Component> &y) {
+                    return x.first.second == y.first.second;
+                  });
+              // since a new item larger than the smallest element of topk
+              // was added, there is a new smallest inner.
+              smallest_inner = topk.at(0).second;
             }
           }
         }
       }
     }
-
-    // reverse because we want smallest inner to largest.
-    std::reverse(topk.begin(), topk.end());
-
     std::vector<KV> topk_out(topk.size());
     std::generate(topk_out.begin(), topk_out.end(), [&topk, n = -1]() mutable {
       ++n;
       return topk.at(n).first;
     });
-
     return {topk_out, tracker};
   }
 

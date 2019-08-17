@@ -12,11 +12,15 @@ In the bind directory, there are some minimal python bindings that were made wit
 
 It also provides a simple C++ implementation of and Python bindings for vanilla-LSH.  
 
-The tables all expose the functions (for inner products and distance)
+The tables all expose these functions (for inner products and distance)
  * probe(query, adj) finds the item resulting in the largest inner product in the 'adj' hiighest ranked buckets
  * k_probe(k, query, adj) finds the k items resulting in the largest inner products in the 'adj' highest ranked buckets
- * probe_approx(query, c, adj) finds the first item with an inner product great than c
+ * probe_approx(query, c, adj) finds the first item with an inner product greater than c
  * k_probe_approx(k, query, c, adj) finds the first k items with inner products greater than c
+
+## Usage
+
+All needed libraries are included in external/. So, it should be decently portable. unit tests and synthetic data tests can be run using the Makefile. Running the movielenstest will not work since the data is not included in this repository. The examples in pyexamples and synthetic show how to use the library.  
 
 
 ## LSH for Maximum Inner Product Search

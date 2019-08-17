@@ -151,15 +151,17 @@ public:
 
   std::vector<int64_t> probe_ranking(int64_t idx, int64_t adj) const {
     /*
-    auto sim_it = similar.find(idx);
-    if (sim_it != similar.end()) {
-      return (*sim_it).second;
-    }
-    */
+     * finds the similarity rankings of buckets using this tables sim
+     * It retuns the top-adj most similar indices.
+     */
     return stats::topk<int64_t>(
         adj, static_cast<int64_t>(0), static_cast<int64_t>(num_buckets),
-        [&](int64_t x, int64_t y) { return sim(idx, x) > sim(idx, y); },
-        [&](int64_t x, int64_t y) { return sim(idx, x) < sim(idx, y); });
+        [&](const int64_t x, const int64_t y) {
+          return sim(idx, x) > sim(idx, y);
+        },
+        [&](const int64_t x, const int64_t y) {
+          return sim(idx, x) < sim(idx, y);
+        });
   }
 
   std::vector<KV> topk_in_bucket(int64_t k, int64_t bucket,

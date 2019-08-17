@@ -200,6 +200,20 @@ TEST_CASE("topk range with complex comp", "stats") {
   REQUIRE(t2 == std::vector{0});
 }
 
+bool greater(int x, int y) { return x > y; }
+
+bool equal(int x, int y) { return x == y; }
+
+TEST_CASE("simple insert unique inplace", "stats") {
+  std::vector<int> a{1, 2, 3};
+  nr::stats::insert_unique_inplace(2, a, greater, equal);
+  REQUIRE(a == std::vector{1, 2, 3});
+  nr::stats::insert_unique_inplace(4, a, greater, equal);
+  REQUIRE(a == std::vector{2, 3, 4});
+  nr::stats::insert_unique_inplace(1, a, greater, equal);
+  REQUIRE(a == std::vector{2, 3, 4});
+}
+
 TEST_CASE("unique", "stats") {
   std::vector<int> a{1, 1, 3, 2, 2, 3, 5};
   REQUIRE(nr::stats::unique(a).first == std::vector{1, 3, 2, 5});

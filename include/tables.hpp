@@ -187,7 +187,8 @@ public:
 
   std::vector<std::vector<int64_t>> sub_tables_rankings(int64_t idx,
                                                         int64_t k) const {
-    std::vector<std::vector<int64_t>> rankings(tables.size());
+    std::vector<std::vector<int64_t>> rankings(
+        tables.size(), std::vector<int64_t>(num_buckets));
     for (size_t i = 0; i < tables.size(); ++i) {
       rankings.at(i) = tables.at(i).probe_ranking(idx, k);
     }

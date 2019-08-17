@@ -7,10 +7,9 @@ import scipy.sparse
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import svds
 
-
-
 num_movies = 10681
 num_reviewers = 71567
+
 
 def load(num_tables, num_partitions, bits, factors):
     train, test, mean_rating = load_split_set(factors,
@@ -18,8 +17,10 @@ def load(num_tables, num_partitions, bits, factors):
                                               frac=0.986)
     u, vt, review_matrix_csr = df_to_matrix(train, factors)
     test = [tuple(i) for i in test[['userid', 'movieidx', 'rating']].values]
-    # returns the test set, "trained" table, and vt. 
-    return test, create_tables(vt, num_tables, num_partitions, bits, factors), vt
+    # returns the test set, "trained" table, and vt.
+    return test, create_tables(vt, num_tables, num_partitions, bits,
+                               factors), vt
+
 
 def load_split_set(factors, file_name, frac=0.986, path='ml-10m/ml-10M100K/'):
     ratings = pandas.read_csv(path + file_name,
@@ -79,7 +80,7 @@ def create_tables(vt, num_tables, num_partitions, bits, dim):
                       num_partitions,
                       bits=bits,
                       dim=dim,
-                      num_buckets=num_buckets)
+                      num_buckets=2 * num_buckets)
     n.fill(vt.transpose(), False)
     n.stats()
     return n

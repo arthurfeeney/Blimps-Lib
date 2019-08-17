@@ -20,7 +20,7 @@ int main() {
    * Generate data and fill NR-LSH table.
    */
 
-  const size_t dim = 10;
+  const size_t dim = 50;
 
   const std::vector<size_t> ks{
       1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11,
@@ -35,11 +35,14 @@ int main() {
     std::vector<VectorXf> data = gen_data(std::pow(2, 16), dim);
     std::vector<VectorXf> queries = gen_data(200, dim);
 
-    // auto sizes = nr::sizes_from_probs(data.size(), .9, .5);
-    // int64_t bits = sizes.first;
-    // int64_t num_tables = sizes.second;
-    // std::cout << bits << ' ' << num_tables << "\n\n\n";
-    nr::NR_MultiProbe<VectorXf> probe(8, 1, 16, dim, std::pow(2, 16));
+    auto sizes = nr::sizes_from_probs(data.size(), .5, .5);
+    int64_t bits = sizes.first;
+    int64_t num_tables = sizes.second;
+    std::cout << bits << ' ' << num_tables << "\n\n\n";
+    nr::NR_MultiProbe<VectorXf> probe(num_tables, 1, bits, dim,
+                                      std::pow(2, 16));
+
+    // nr::NR_MultiProbe<VectorXf> probe(16, 1, 16, dim, std::pow(2, 16));
 
     probe.fill(data, false);
 
@@ -71,7 +74,7 @@ int main() {
       /*
        * Find some decent vectors and print their products with q.
        */
-      auto topk_and_tracker = probe.k_probe(k, query, 100);
+      auto topk_and_tracker = probe.k_probe(k, query, 10);
       auto opt_topk = topk_and_tracker.first.value();
       for (auto &kv : opt_topk) {
         std::cout << kv.first.dot(query) << ' ';

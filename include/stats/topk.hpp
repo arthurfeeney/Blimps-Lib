@@ -2,6 +2,7 @@
 #pragma once
 
 #include <algorithm>
+#include <utility>
 
 namespace nr {
 namespace stats {
@@ -11,7 +12,8 @@ static void shift_left_from_inplace(size_t idx, Cont &c) {
   // starting at index, shift everything one index to the left.
   // Overwriting the first element.
   for (size_t i = 0; i < idx; ++i) {
-    c.at(i) = c.at(i + 1);
+    // since it is going to be overwritten, we can move c[i+1]
+    c.at(i) = std::move(c.at(i + 1));
   }
 }
 
@@ -161,16 +163,46 @@ Out topk(int64_t k, Ordered low, Ordered high, Greater greater, Less less) {
   std::sort(topk.begin(), topk.end(),
             [&](Ordered x, Ordered y) { return less(x, y); });
 
-  Ordered minimum = -999999;
+  Ordered minimum = *topk.begin();
 
   for (Ordered iter = low + k; iter < high; ++iter) {
     if (greater(iter, minimum)) {
       insert_inplace(iter, topk, greater);
-      minimum = *std::min_element(topk.begin(), topk.end(), less);
+      minimum = *topk.begin();
     }
   }
   std::reverse(topk.begin(), topk.end());
   return topk;
+}
+
+/*
+ * Helper function that inserts items inplace if they are unique.
+ * It takes a function to test for equality.
+ */
+
+template <template <typename Sub> typename Cont, typename Sub, typename Greater,
+          typename Equal>
+std::optional<size_t> insert_unique_inplace(Sub to_insert, Cont<Sub> &c,
+                                            Greater greater, Equal equal) {
+  /*  maintains sorted ordering and size of c. Removing smallest value
+   * if the item is already in the container, it is not inserted.
+   * the index of the item already in the container is returned.
+   * returns index inserted at.
+   */
+
+  // start from the largest element.
+  for (auto i = c.end() - 1; i >= c.begin(); --i) {
+    if (equal(to_insert, *i)) {
+      return i - c.begin();
+    }
+    if (greater(to_insert, *i)) {
+      // shift left and insert.
+      shift_left_from_inplace(i - c.begin(), c);
+      *i = to_insert;
+      return i - c.begin();
+    }
+  }
+  return {};
 }
 
 } // namespace stats
