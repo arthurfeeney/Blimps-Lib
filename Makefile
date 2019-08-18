@@ -9,8 +9,7 @@ FILE = bind/nr.cpp
 OMP = -fopenmp
 
 binding:
-	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
-	g++ $(FLAGS) -shared $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) stats.o $(FILE) $(OUT);
+	g++ $(FLAGS) -shared $(OMP) $(EIGEN) $(PYBIND11) $(GSL) $(fPIC) $(FILE) $(OUT);
 	cp bind/nr_* movielenstest/;
 	cp bind/nr_* synthetic/
 	cp bind/nr_* pyexamples/;
@@ -23,20 +22,16 @@ CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp 
 
 catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp
-	g++ $(FLAGS) $(EIGEN) -c include/stats/stats.cpp
-	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o stats.o $(CASES) && ./test/test --success
+	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o $(CASES) && ./test/test --success
 
 k_probe_approx:
-	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
-	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe_approx.o stats.o synthetic/synth_k_probe_approx.cpp;
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe_approx.o synthetic/synth_k_probe_approx.cpp;
 	./synthetic/k_probe_approx.o
 
 k_probe_approx_from_probs:
-	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
-	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/synth_from_probs.o stats.o synthetic/synth_from_probs.cpp;
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/synth_from_probs.o synthetic/synth_from_probs.cpp;
 	./synthetic/synth_from_probs.o
 
 k_probe:
-	g++ $(FLAGS) -fPIC -c include/stats/stats.cpp
-	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe.o stats.o synthetic/synth_k_probe.cpp;
+	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe.o synthetic/synth_k_probe.cpp;
 	./synthetic/k_probe.o

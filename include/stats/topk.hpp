@@ -8,7 +8,7 @@ namespace nr {
 namespace stats {
 
 template <typename Cont>
-static void shift_left_from_inplace(size_t idx, Cont &c) {
+inline void shift_left_from_inplace(size_t idx, Cont &c) {
   // starting at index, shift everything one index to the left.
   // Overwriting the first element.
   for (size_t i = 0; i < idx; ++i) {
@@ -22,7 +22,7 @@ static void shift_left_from_inplace(size_t idx, Cont &c) {
  */
 
 template <template <typename Sub> typename Cont, typename Sub>
-std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c) {
+inline std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c) {
   // maintains sorted ordering and size of c. Removing smallest value
   // if to_insert is the smallest, it is not inserted.
   // returns index inserted at.
@@ -81,8 +81,8 @@ std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c) {
  */
 
 template <template <typename Sub> typename Cont, typename Sub, typename Greater>
-std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c,
-                                     Greater greater) {
+inline std::optional<size_t> insert_inplace(Sub to_insert, Cont<Sub> &c,
+                                            Greater greater) {
   // maintains sorted ordering and size of c. Removing smallest value
   // if to_insert is the smallest, it is not inserted.
   // returns index inserted at.
@@ -151,7 +151,8 @@ std::pair<Cont<Sub>, Cont<size_t>> topk(int64_t k, const Cont<Sub> &c,
 
 template <typename Ordered, typename Greater, typename Less,
           typename Out = std::vector<Ordered>>
-Out topk(int64_t k, Ordered low, Ordered high, Greater greater, Less less) {
+inline Out topk(int64_t k, Ordered low, Ordered high, Greater greater,
+                Less less) {
   if (k < 1) {
     throw std::logic_error("stats::topk, k must be positive.");
   }
@@ -182,8 +183,9 @@ Out topk(int64_t k, Ordered low, Ordered high, Greater greater, Less less) {
 
 template <template <typename Sub> typename Cont, typename Sub, typename Greater,
           typename Equal>
-std::optional<size_t> insert_unique_inplace(Sub to_insert, Cont<Sub> &c,
-                                            Greater greater, Equal equal) {
+inline std::optional<size_t> insert_unique_inplace(Sub to_insert, Cont<Sub> &c,
+                                                   Greater greater,
+                                                   Equal equal) {
   /*  maintains sorted ordering and size of c. Removing smallest value
    * if the item is already in the container, it is not inserted.
    * the index of the item already in the container is returned.

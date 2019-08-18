@@ -128,7 +128,7 @@ public:
     return std::make_pair(max, partition_tracker);
   }
 
-  double sim(size_t idx, size_t other) const {
+  inline double sim(size_t idx, size_t other) const {
     /*
      * Similar inputs result in POSITIBE output.
      * Disimilar inputs result in NEGATIVE output.
