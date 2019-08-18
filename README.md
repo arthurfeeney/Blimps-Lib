@@ -20,8 +20,7 @@ The tables all expose these functions (for inner products and distance)
 
 ## Usage
 
-All needed libraries are included in external/. So, it should be decently portable. unit tests and synthetic data tests can be run using the Makefile. Running the movielenstest will not work since the data is not included in this repository. The examples in pyexamples and synthetic show how to use the library.  
-
+All needed libraries are included in external/. So, it should be decently portable. unit tests and synthetic data tests can be run using the Makefile. Running the movielenstest will not work since the data is not included in this repository. The examples in pyexamples and synthetic show how to use the library. The Python bindings can be compiled used "make binding".
 
 ## LSH for Maximum Inner Product Search
 
