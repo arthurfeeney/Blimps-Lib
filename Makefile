@@ -18,7 +18,7 @@ clean:
 	rm bind/nr_binding.so
 
 TEST = -Iexternal/Catch2/
-CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp test/nr.cpp test/lsh.cpp test/p_stable_lsh.cpp
+CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp test/nr.cpp test/lsh.cpp test/p_stable_lsh.cpp test/lsh_multi.cpp
 
 catch:
 	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp

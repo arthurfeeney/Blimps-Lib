@@ -22,7 +22,7 @@
  * Implementation of Mulitprobe Locality Sensitive Hashing
  * Uses 1 table, but probes multiple buckets that are likely to contain
  * values near the query.
- * Pretty fast but has poor recall.
+ * Fast but has poor recall.
  */
 
 namespace nr {
