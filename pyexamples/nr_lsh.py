@@ -27,9 +27,13 @@ def same_bits(n1, n2, bits):
     return nr_binding.same_bits(n1, n2, bits)
 
 
-def lsh_table(bits, dim, num_buckets, dtype=float32):
+def lsh_table(num_tables, bits, dim, num_buckets, dtype=float32):
     if any([dtype is f for f in _valid_float32]):
-        return nr_binding.LSHProbeFloat(bits, dim, num_buckets)
+        if num_tables == 1:
+            return nr_binding.LSHProbeFloat(bits, dim, num_buckets)
+        else:
+            return nr_binding.LSHMultiTableProbeFloat(num_tables, bits, dim,
+                                                      num_buckets)
     elif any([dtype is f for f in _valid_float64]):
         return nr_binding.LSHProbeDouble(bits, dim, num_buckets)
     else:
