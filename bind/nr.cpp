@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "../include/lsh.hpp"
+#include "../include/lsh_multi.hpp"
 #include "../include/nr_multiprobe.hpp"
 #include "../include/p_stable_lsh.hpp"
 #include "../include/sign_lsh.hpp"
@@ -97,4 +98,15 @@ PYBIND11_MODULE(nr_binding, m) {
       .def("probe_approx", &LSH_MultiProbe<VectorXf>::probe_approx)
       .def("k_probe_approx", &LSH_MultiProbe<VectorXf>::k_probe_approx)
       .def("stats", &LSH_MultiProbe<VectorXf>::print_stats);
+
+  py::class_<LSH_MultiProbe_MultiTable<VectorXf>>(m, "LSHMultiTableProbeFloat")
+      .def(py::init<int64_t, int64_t, int64_t, size_t>())
+      .def("fill",
+           &LSH_MultiProbe_MultiTable<VectorXf>::fill<std::vector<VectorXf>>)
+      .def("probe", &LSH_MultiProbe_MultiTable<VectorXf>::probe)
+      .def("k_probe", &LSH_MultiProbe_MultiTable<VectorXf>::k_probe)
+      .def("probe_approx", &LSH_MultiProbe_MultiTable<VectorXf>::probe_approx)
+      .def("k_probe_approx",
+           &LSH_MultiProbe_MultiTable<VectorXf>::k_probe_approx)
+      .def("stats", &LSH_MultiProbe_MultiTable<VectorXf>::print_stats);
 }

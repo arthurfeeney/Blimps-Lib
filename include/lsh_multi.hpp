@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include "fast_sim.hpp"
 #include "kv_comparator.hpp"
 #include "multiprobe.hpp"
 #include "sign_lsh.hpp"
@@ -39,73 +40,27 @@ private:
   MultiTable tables;
   int64_t dim;
   int64_t num_buckets;
-
-  // tracks all of the keys in each table.
-  // Storing keys after tables are filled allows for faster rankings
-  std::vector<std::unordered_set<size_t>> table_keys;
-
-  // defaults to SignLSH, but user can pass in a PStableLSH.
   std::vector<Hash> hash_functions;
-
-  static double sim(size_t x, size_t y, size_t num_buckets) {
-    // finds the number of bits in x and y that are the same.
-    return static_cast<double>(
-        stats::same_bits(x, y, std::floor(std::log2(num_buckets)) + 1));
-  }
-
-  std::vector<size_t> probe_ranking(size_t table, size_t idx,
-                                    size_t num_buckets) {
-    // std::vector<size_t> rank(num_buckets, 0);
-    // std::iota(rank.begin(), rank.end(), 0);
-    // sort in descending order. Most similar in the front.
-    // manipulates table keys in-place. Hopefully still fast
-    std::vector<size_t> rank(table_keys.at(table).begin(),
-                             table_keys.at(table).end());
-    std::sort(rank.begin(), rank.end(), [&](size_t x, size_t y) {
-      return sim(idx, x, num_buckets) > sim(idx, y, num_buckets);
-    });
-    return rank;
-  }
 
   std::vector<size_t> rank(const Vect &q, size_t table, size_t max_hash,
                            int64_t adj) {
-    // return indices of the top 'adj' ranked buclets.
-    // not static because it uses the hash function.
-    const size_t idx = hash_functions.at(table).hash_max(q, num_buckets);
-    std::vector<size_t> ranks = probe_ranking(table, idx, max_hash);
-    return std::vector<size_t>(ranks.begin(), ranks.begin() + adj);
-  }
-
-  void manage_topk(std::vector<std::pair<KV, Component>> &topk, int64_t k,
-                   const Vect &query, KV pos) {
     /*
-     * Clunky function to track the topk vectors closest to q.
+     * Returns the adj indices that are most similar to q's hash.
+     * These have the highest chance of containing a neighbor of q.
      */
-    if (k < 1) {
-      throw std::runtime_error(
-          "LSH_MultiProbe_MultiTable::manage_topk, k must be positive");
-    }
-    Component dist = (query - pos.first).norm();
-    topk.push_back(std::make_pair(pos, dist));
-    // sorting by distance should be fast.
-    // don't have to recompute distances.
-    // sort nearest to most distant. Removing last element should be faster
-    std::sort(topk.begin(), topk.end(),
-              [](std::pair<KV, Component> x, std::pair<KV, Component> y) {
-                return x.second < y.second;
-              });
-    if (topk.size() >= static_cast<size_t>(k + 1)) {
-      // remove most distant element.
-      topk.pop_back();
-    }
+    const static size_t bit_lim = std::floor(std::log2(num_buckets)) + 1;
+    const size_t idx = hash_functions.at(table).hash_max(q, num_buckets);
+    return fast_sim_1bit(idx, bit_lim);
   }
 
 public:
   LSH_MultiProbe_MultiTable(int64_t num_tables, int64_t bits, int64_t dimension,
                             int64_t num_buckets)
       : tables(num_tables, std::unordered_map<size_t, std::list<KV>>()),
-        dim(dimension), num_buckets(num_buckets), table_keys(num_tables),
-        hash_functions() {
+        dim(dimension), num_buckets(num_buckets), hash_functions() {
+    /*
+     * Each table has its own hash function.
+     */
     for (int64_t i = 0; i < num_tables; ++i) {
       hash_functions.emplace_back(bits, dim);
     }
@@ -114,12 +69,16 @@ public:
   LSH_MultiProbe_MultiTable(const LSH_MultiProbe_MultiTable &other) {
     tables(other.tables);
     dim = other.dim;
-    table_keys = other.table_keys;
     hash_function(other.hash_function);
   }
 
   template <typename Cont>
   void fill(const Cont &data, bool is_normalized = false) {
+    /*
+     * fills the hash tables with input data.
+     * The "is_normalized" argument is not necessary for this table.
+     * It defaults to false so a value does not need to be passed in.
+     */
     for (size_t table = 0; table < tables.size(); ++table) {
       const auto &hash = hash_functions.at(table);
       int64_t id = 0;
@@ -128,19 +87,23 @@ public:
         tables.at(table)[hash_value].push_back({datum, id});
         ++id;
       }
-      for (const auto &kv_pair : tables.at(table)) {
-        table_keys.at(table).insert(kv_pair.first);
-      }
     }
   }
 
   std::pair<std::optional<KV>, StatTracker> probe(const Vect &q, int64_t adj) {
+    /*
+     * returns vector closest to q found in the adj highest ranked buckets.
+     * If every bucket checked is empty, then no neighbor will be found.
+     * This is the only case it can return nullopt.
+     */
     StatTracker tracker;
     KV neighbor = KV();
     Component min_dist = std::numeric_limits<Component>::max();
     for (size_t table = 0; table < tables.size(); ++table) {
+      tracker.incr_tables_probed();
       for (size_t idx : rank(q, table, num_buckets, adj)) {
-        for (const KV &x : tables.at(table).at(idx)) {
+        tracker.incr_buckets_probed();
+        for (const KV &x : tables.at(table)[idx]) {
           tracker.incr_comparisons();
           Component dist = (q - x.first).norm();
           if (dist < min_dist) {
@@ -150,41 +113,97 @@ public:
         }
       }
     }
+    if (min_dist == std::numeric_limits<Component>::max())
+      return {std::nullopt, tracker};
     return {neighbor, tracker};
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe(int64_t k, const Vect &q, size_t adj) {}
+  k_probe(int64_t k, const Vect &q, size_t adj) {
+    /*
+     * Returns the k vectors in adj highest ranked buckets that are closest to
+     * the input vector q.
+     */
+    StatTracker tracker;
+    std::vector<std::pair<KV, Component>> topk(0);
+    topk.reserve(k + 1);
+    Component largest_dist = std::numeric_limits<Component>::max();
+
+    for (size_t table = 0; table < tables.size(); ++table) {
+      tracker.incr_tables_probed();
+      for (size_t idx : rank(q, table, num_buckets, adj)) {
+        tracker.incr_buckets_probed();
+        for (const KV &x : tables.at(table)[idx]) {
+          tracker.incr_comparisons();
+          Component dist = (q - x.first).norm();
+          largest_dist = k_probe_step(k, x, dist, topk, largest_dist);
+        }
+      }
+    }
+    return k_probe_output(topk, tracker);
+  }
+
+  Component k_probe_step(const int64_t k, const KV &x, const Component dist,
+                         std::vector<std::pair<KV, Component>> &topk,
+                         const Component largest_dist) {
+    /*
+     * Checks if x should be added to the topk. If it should,
+     * it is added and the largest_dist is updated.
+     */
+    if (topk.size() < static_cast<size_t>(k)) {
+      topk.push_back({x, dist});
+      std::sort(topk.begin(), topk.end(), [](const auto &x, const auto &y) {
+        return x.second > y.second;
+      });
+    } else if (dist < largest_dist) {
+      insert_in_topk({x, dist}, topk);
+    }
+    return topk.at(0).second;
+  }
+
+  void insert_in_topk(const std::pair<KV, Component> &to_add,
+                      std::vector<std::pair<KV, Component>> &topk) {
+    /*
+     * insert to_add into the topk so that the topk is distant to nearest.
+     */
+    stats::insert_unique_inplace(
+        to_add, topk,
+        [](const auto &x, const auto &y) { return x.second < y.second; },
+        [](const auto &x, const auto &y) {
+          return x.first.second == y.first.second;
+        });
+  }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  proc_k_probe_output(std::vector<std::pair<KV, Component>> &topk,
-                      const StatTracker &tracker) const {
-    if (topk.size() == 0) {
+  k_probe_output(const std::vector<std::pair<KV, Component>> &topk,
+                 StatTracker tracker) {
+    /*
+     * simple function to process the output for k_probe.
+     * if the topk is empty, it returns nullopt. otherwise, it copies
+     * topk into a vector<KV> and returns that.
+     */
+    if (topk.size() == 0)
       return {std::nullopt, tracker};
+    else {
+      std::vector<KV> topk_out(topk.size());
+      for (size_t i = 0; i < topk.size(); ++i)
+        topk_out.at(i) = topk.at(i).first;
+      return {topk_out, tracker};
     }
-    // sort output so it is distant to nearest
-    std::sort(
-        topk.begin(), topk.end(),
-        [](const std::pair<KV, Component> &x,
-           const std::pair<KV, Component> &y) { return x.second > y.second; });
-
-    // copy topk into vector of proper return type
-    std::vector<KV> topk_out(topk.size());
-    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = -1]() mutable {
-      ++n;
-      return topk.at(n).first;
-    });
-    return {std::make_optional(topk_out), tracker};
   }
 
   std::pair<std::optional<KV>, StatTracker>
   probe_approx(const Vect &q, Component c, int64_t adj) {
+    /*
+     * Returns the first vector within distance c that is found in the
+     * adj highest ranked buckets.
+     */
     StatTracker tracker;
     for (size_t table = 0; table < tables.size(); ++table) {
       tracker.incr_tables_probed();
       for (size_t idx : rank(q, table, num_buckets, adj)) {
         tracker.incr_buckets_probed();
-        for (const KV &x : tables.at(table).at(idx)) {
+        for (const KV &x : tables.at(table)[idx]) {
           tracker.incr_comparisons();
           Component dist = (q - x.first).norm();
           if (dist <= c) {
@@ -197,22 +216,48 @@ public:
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {}
+  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
+    /*
+     * Function finds the first k items that are within distance c from
+     * the query. Output is ordered by distant to nearest.
+     */
+    StatTracker tracker;
+    std::vector<std::pair<KV, Component>> topk(0);
+    topk.reserve(k + 1); // allocate now so it doesn't need to resize
+    for (size_t table = 0; table < tables.size(); ++table) {
+      tracker.incr_tables_probed();
+      for (size_t idx : rank(q, table, num_buckets, adj)) {
+        tracker.incr_buckets_probed();
+        for (const KV &x : tables.at(table)[idx]) {
+          tracker.incr_comparisons();
+          Component dist = (q - x.first).norm();
+          if (dist <= c)
+            topk.push_back({x, dist});
+          if (topk.size() == static_cast<size_t>(k))
+            return k_probe_approx_output(k, topk, tracker);
+        }
+      }
+    }
+    return k_probe_approx_output(k, topk, tracker);
+  }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
-  proc_k_probe_approx_output(const Vect &q, std::vector<KV> &topk,
-                             StatTracker &tracker) const {
+  k_probe_approx_output(int64_t k, std::vector<std::pair<KV, Component>> &topk,
+                        StatTracker &tracker) const {
     /*
-     * Function to format the topk items found.
+     * Function to format the topk for k_probe_approx.
+     * the topk should be order distant to nearest.
      */
-    if (topk.size() == 0) {
+    if (topk.size() == 0)
       return {std::nullopt, tracker};
-    }
     // should be sorted distant to nearest.
-    std::sort(topk.begin(), topk.end(), [&q](KV x, KV y) {
-      return (x.first - q).norm() > (y.first - q).norm();
-    });
-    return {std::make_optional(topk), tracker};
+    std::sort(topk.begin(), topk.end(),
+              [](const auto &x, const auto &y) { return x.second > y.second; });
+    std::vector<KV> topk_output(topk.size());
+    for (size_t i = 0; i < topk.size(); ++i) {
+      topk_output.at(i) = topk.at(i).first;
+    }
+    return {topk_output, tracker};
   }
 
   void print_stats() const {}
@@ -220,6 +265,6 @@ public:
   MultiTable data() { return tables; }
 
   size_t num_tables() const { return tables.size(); }
-};
+}; // namespace nr
 
 } // namespace nr

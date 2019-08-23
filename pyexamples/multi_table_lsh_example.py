@@ -51,24 +51,31 @@ def main():
     t.fill(data, False)
 
     # track the total time to perform all queries.
-    total_time = 0
+    exact_total_time = 0
+    probe_total_time = 0
+    probe_approx_total_time = 0
 
     # "multiprobe" query the table.
     for query in queries:
         # find the nearset neighbor and its distance
+        start = time.time()
         nn, dist = exact_neighbor(query, data)
-
+        end = time.time()
+        exact_total_time += (end - start)
         # probe the table and record the time.
         start = time.time()
         # the probe returns an option of KV, so it is MAYBE the
         # neighbor and its id; but, it could be None.
         maybe_neighbor, stats = t.probe(query, args.adj)
         end = time.time()
-        total_time += (end - start)
+        probe_total_time += (end - start)
 
         approx_dist1 = np.linalg.norm(maybe_neighbor[0] - query)
 
+        start = time.time()
         maybe_neighbor, stats = t.probe_approx(query, 2.0, args.adj)
+        end = time.time()
+        probe_approx_total_time += (end - start)
         if (maybe_neighbor):
             approx_dist2 = np.linalg.norm(maybe_neighbor[0] - query)
         else:
@@ -76,7 +83,12 @@ def main():
 
         print('{0:.2f} {1:.2f} {2:.2f}'.format(approx_dist1, approx_dist2,
                                                dist))
-    print('Aveerage Time Per Query: ' + str(total_time / args.num_queries))
+    print('Exact Average Time Per Query: ' +
+          str(exact_total_time / args.num_queries))
+    print('Probe Average Time Per Query: ' +
+          str(probe_total_time / args.num_queries))
+    print('Probe Approx Average Time Per Query: ' +
+          str(probe_approx_total_time / args.num_queries))
 
 
 def generate_data(count, dim):

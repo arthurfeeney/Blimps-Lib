@@ -67,12 +67,28 @@ TEST_CASE("lsh multi simple probe approx", "lsh_multi") {
   VectorXf query(3);
   query << .3, -1, .4;
 
-  auto out = lsh.probe_approx(query, 0.1, 4);
+  auto out = lsh.probe_approx(query, 0.1, 2);
   REQUIRE(out.first.value().first == data.at(1));
 
   // should find a near neighbor
   VectorXf query2(3);
   query2 << .3, -.9, .4;
-  out = lsh.probe_approx(query2, .2, 4);
+  out = lsh.probe_approx(query2, .2, 2);
   REQUIRE(out.first.value().first == data.at(1));
+}
+
+TEST_CASE("lsh multi simple k probe", "lsh_multi") {
+  nr::LSH_MultiProbe_MultiTable<VectorXf> lsh(2, 10, 3, 10);
+  REQUIRE(lsh.num_tables() == 2);
+  auto data(make_data());
+  lsh.fill(data);
+
+  VectorXf query(3);
+  query << .3, -1, .4;
+  auto out = lsh.k_probe(1, query, 2);
+  REQUIRE(out.first.value().at(0).first == data.at(1));
+
+  auto out2 = lsh.k_probe(2, query, 2);
+  REQUIRE(out2.first.value().at(1).first == data.at(1));
+  REQUIRE(out2.first.value().at(0).first == data.at(2));
 }
