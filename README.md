@@ -22,6 +22,10 @@ The tables all expose these functions (for inner products and distance)
 
 All needed libraries are included in external/. So, it should be decently portable. unit tests and synthetic data tests can be run using the Makefile. Running the movielenstest will not work since the data is not included in this repository. The examples in pyexamples and synthetic show how to use the library. The Python bindings can be compiled used "make binding".
 
+## Examples
+
+Examples can be found in synthetic/ and pyexamples/ that respectively contain code using C++ and Python bindings.
+
 ## LSH for Maximum Inner Product Search
 
 [Bachrach et al.](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/XboxInnerProduct.pdf) show that MIPS is reducible to Near Neighbor Search, but
