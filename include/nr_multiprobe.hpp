@@ -70,9 +70,8 @@ public:
       auto p = probe_table.probe(q, adj);
       std::optional<KV> out = p.first;
       tracker += p.second;
-      if (out) {
+      if (out)
         return std::make_pair(out, tracker);
-      }
     }
     return std::make_pair(std::nullopt, tracker);
   }
@@ -87,20 +86,57 @@ public:
       throw std::runtime_error("NR_MultiProbe::k_probe, k < 1");
 
     StatTracker tracker;
-
     // store KV pair and the inner product value with q; avoid recomputing
     std::vector<std::pair<KV, Component>> topk(0);
-
     // reserve memory now so it never needs to be resized in loops.
     topk.reserve(k + 1);
-
     k_probe_tables(k, q, adj, topk);
-
     // copy output to just a vector of KV.
     std::vector<KV> topk_out(topk.size());
     std::generate(topk_out.begin(), topk_out.end(),
                   [&topk, n = -1]() mutable { return topk.at(++n).first; });
     return {topk_out, tracker};
+  }
+
+  std::pair<std::optional<KV>, StatTracker>
+  probe_approx(const Vect &q, Component c, int64_t adj) {
+    /*
+     * returns the first vector in adj highest ranked buckets that has
+     * an inner product with q that is greater than c.
+     */
+    StatTracker tracker;
+    for (auto &probe_table : probe_tables) {
+      tracker.incr_tables_probed();
+      auto p = probe_table.probe_approx(q, c, adj);
+      tracker += p.second;
+      if (p.first)
+        return std::make_pair(p.first.value(), tracker);
+    }
+    return std::make_pair(std::nullopt, tracker);
+  }
+
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
+    /*
+     * returns the k vectors from adj buckets that have the largest inner
+     * products with q.
+     */
+    StatTracker tracker;
+    std::vector<KV> vects(0);
+    for (auto &probe_table : probe_tables) {
+      if (k - vects.size() > 0) {
+        auto found = probe_table.k_probe_approx(k - vects.size(), q, c, adj);
+        tracker += found.second;
+        if (found.first) {
+          std::vector<KV> v = found.first.value();
+          insert_kv(vects, v);
+        }
+      }
+    }
+    if (vects.size() == 0) {
+      std::make_pair(std::nullopt, tracker);
+    }
+    return std::make_pair(vects, tracker);
   }
 
   void k_probe_tables(int64_t k, const Vect &q, size_t adj,
@@ -182,51 +218,6 @@ public:
            const std::pair<KV, Component> &y) {
           return x.first.second == y.first.second;
         });
-  }
-
-  std::pair<std::optional<KV>, StatTracker>
-  probe_approx(const Vect &q, Component c, int64_t adj) {
-    /*
-     * returns the first vector in adj highest ranked buckets that has
-     * an inner product with q that is greater than c.
-     */
-    StatTracker tracker;
-
-    for (auto &probe_table : probe_tables) {
-      tracker.incr_tables_probed();
-      auto p = probe_table.probe_approx(q, c, adj);
-      tracker += p.second;
-      if (p.first) {
-        return std::make_pair(p.first.value(), tracker);
-      }
-    }
-    return std::make_pair(std::nullopt, tracker);
-  }
-
-  std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_approx(int64_t k, const Vect &q, Component c, size_t adj) {
-    /*
-     * returns the k vectors from adj buckets that have the largest inner
-     * products with q.
-     */
-    StatTracker tracker;
-
-    std::vector<KV> vects(0);
-    for (auto &probe_table : probe_tables) {
-      if (k - vects.size() > 0) {
-        auto found = probe_table.k_probe_approx(k - vects.size(), q, c, adj);
-        tracker += found.second;
-        if (found.first) {
-          std::vector<KV> v = found.first.value();
-          insert_kv(vects, v);
-        }
-      }
-    }
-
-    if (vects.size() == 0) {
-      std::make_pair(std::nullopt, tracker);
-    }
-    return std::make_pair(vects, tracker);
   }
 
   KV find_max_inner(const Vect &q) {

@@ -143,55 +143,6 @@ public:
     return k_probe_output(topk, tracker);
   }
 
-  Component k_probe_step(const int64_t k, const KV &x, const Component dist,
-                         std::vector<std::pair<KV, Component>> &topk,
-                         const Component largest_dist) {
-    /*
-     * Checks if x should be added to the topk. If it should,
-     * it is added and the largest_dist is updated.
-     */
-    if (topk.size() < static_cast<size_t>(k)) {
-      topk.push_back({x, dist});
-      std::sort(topk.begin(), topk.end(), [](const auto &x, const auto &y) {
-        return x.second > y.second;
-      });
-    } else if (dist < largest_dist) {
-      insert_in_topk({x, dist}, topk);
-    }
-    return topk.at(0).second;
-  }
-
-  void insert_in_topk(const std::pair<KV, Component> &to_add,
-                      std::vector<std::pair<KV, Component>> &topk) {
-    /*
-     * insert to_add into the topk so that the topk is distant to nearest.
-     */
-    stats::insert_unique_inplace(
-        to_add, topk,
-        [](const auto &x, const auto &y) { return x.second < y.second; },
-        [](const auto &x, const auto &y) {
-          return x.first.second == y.first.second;
-        });
-  }
-
-  std::pair<std::optional<std::vector<KV>>, StatTracker>
-  k_probe_output(const std::vector<std::pair<KV, Component>> &topk,
-                 StatTracker tracker) {
-    /*
-     * simple function to process the output for k_probe.
-     * if the topk is empty, it returns nullopt. otherwise, it copies
-     * topk into a vector<KV> and returns that.
-     */
-    if (topk.size() == 0)
-      return {std::nullopt, tracker};
-    else {
-      std::vector<KV> topk_out(topk.size());
-      for (size_t i = 0; i < topk.size(); ++i)
-        topk_out.at(i) = topk.at(i).first;
-      return {topk_out, tracker};
-    }
-  }
-
   std::pair<std::optional<KV>, StatTracker>
   probe_approx(const Vect &q, Component c, int64_t adj) {
     /*
@@ -239,6 +190,55 @@ public:
       }
     }
     return k_probe_approx_output(k, topk, tracker);
+  }
+
+  Component k_probe_step(const int64_t k, const KV &x, const Component dist,
+                         std::vector<std::pair<KV, Component>> &topk,
+                         const Component largest_dist) {
+    /*
+     * Checks if x should be added to the topk. If it should,
+     * it is added and the largest_dist is updated.
+     */
+    if (topk.size() < static_cast<size_t>(k)) {
+      topk.push_back({x, dist});
+      std::sort(topk.begin(), topk.end(), [](const auto &x, const auto &y) {
+        return x.second > y.second;
+      });
+    } else if (dist < largest_dist) {
+      insert_in_topk({x, dist}, topk);
+    }
+    return topk.at(0).second;
+  }
+
+  void insert_in_topk(const std::pair<KV, Component> &to_add,
+                      std::vector<std::pair<KV, Component>> &topk) {
+    /*
+     * insert to_add into the topk so that the topk is distant to nearest.
+     */
+    stats::insert_unique_inplace(
+        to_add, topk,
+        [](const auto &x, const auto &y) { return x.second < y.second; },
+        [](const auto &x, const auto &y) {
+          return x.first.second == y.first.second;
+        });
+  }
+
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  k_probe_output(const std::vector<std::pair<KV, Component>> &topk,
+                 StatTracker tracker) {
+    /*
+     * simple function to process the output for k_probe.
+     * if the topk is empty, it returns nullopt. otherwise, it copies
+     * topk into a vector<KV> and returns that.
+     */
+    if (topk.size() == 0)
+      return {std::nullopt, tracker};
+    else {
+      std::vector<KV> topk_out(topk.size());
+      for (size_t i = 0; i < topk.size(); ++i)
+        topk_out.at(i) = topk.at(i).first;
+      return {topk_out, tracker};
+    }
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>

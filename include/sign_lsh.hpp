@@ -42,6 +42,23 @@ public:
 
   int64_t dimension() const { return dim; }
 
+  mp::cpp_int operator()(const Vect &input) const { return hash(input); }
+
+  mp::cpp_int hash(const Vect &input) const {
+    // with a large number of hashes, it can become larger than 64 bit.
+    // have to use multiprecision.
+    Vect prods = a * input;
+    Vect bit_vect = numerals_to_bits(prods);
+    return bits_to_num(bit_vect);
+  }
+
+  size_t hash_max(const Vect &input, size_t max) const {
+    mp::cpp_int mp_hash = hash(input);
+    mp::cpp_int residue = mp_hash % max;
+    size_t idx = residue.convert_to<size_t>();
+    return idx;
+  }
+
   void fill_bit_mask() {
     // fill this->bit_mask with powers of 2.
     for (size_t i = 0; i < static_cast<size_t>(bits); ++i) {
@@ -70,25 +87,6 @@ public:
       sum = mp::add(sum, sum, val);
     }
     return sum;
-  }
-
-  mp::cpp_int operator()(const Vect &input) const { return hash(input); }
-
-  mp::cpp_int hash(const Vect &input) const {
-    // with a large number of hashes, it can become larger than 64 bit.
-    // have to use multiprecision.
-    Vect prods = a * input;
-    Vect bit_vect = numerals_to_bits(prods);
-    return bits_to_num(bit_vect);
-  }
-
-  size_t hash_max(const Vect &input, size_t max) const {
-    using mp = boost::multiprecision::cpp_int;
-
-    mp mp_hash = hash(input);
-    mp residue = mp_hash % max;
-    size_t idx = residue.convert_to<size_t>();
-    return idx;
   }
 };
 

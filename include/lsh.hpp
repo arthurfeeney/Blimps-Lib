@@ -111,22 +111,6 @@ public:
     }
   }
 
-  template <typename Op>
-  void iter_table(const Vect &q, int64_t adj, StatTracker &tracker, Op op) {
-    /*
-     * The probe functions iterate through all adj buckets.
-     * Using this function avoids a lot of code duplication.
-     * The specific operation used by the probe function is passed in.
-     */
-    for (const size_t &probe_idx : rank(q, table.size(), adj)) {
-      tracker.incr_buckets_probed();
-      for (const KV &x : table.at(probe_idx)) {
-        tracker.incr_comparisons();
-        op(q, x);
-      }
-    }
-  }
-
   std::pair<std::optional<KV>, StatTracker> probe(const Vect &q, int64_t adj) {
     /*
      * Probe adj buckets. Return vector closest to q.
@@ -167,27 +151,6 @@ public:
     });
 
     return proc_k_probe_output(topk, tracker);
-  }
-
-  std::pair<std::optional<std::vector<KV>>, StatTracker>
-  proc_k_probe_output(std::vector<std::pair<KV, Component>> &topk,
-                      const StatTracker &tracker) const {
-    if (topk.size() == 0) {
-      return {std::nullopt, tracker};
-    }
-    // sort output so it is distant to nearest
-    std::sort(
-        topk.begin(), topk.end(),
-        [](const std::pair<KV, Component> &x,
-           const std::pair<KV, Component> &y) { return x.second > y.second; });
-
-    // copy topk into vector of proper return type
-    std::vector<KV> topk_out(topk.size());
-    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = -1]() mutable {
-      ++n;
-      return topk.at(n).first;
-    });
-    return {std::make_optional(topk_out), tracker};
   }
 
   std::pair<std::optional<KV>, StatTracker>
@@ -238,6 +201,43 @@ public:
       }
     }
     return proc_k_probe_approx_output(q, topk, tracker);
+  }
+
+  template <typename Op>
+  void iter_table(const Vect &q, int64_t adj, StatTracker &tracker, Op op) {
+    /*
+     * The probe functions iterate through all adj buckets.
+     * Using this function avoids a lot of code duplication.
+     * The specific operation used by the probe function is passed in.
+     */
+    for (const size_t &probe_idx : rank(q, table.size(), adj)) {
+      tracker.incr_buckets_probed();
+      for (const KV &x : table.at(probe_idx)) {
+        tracker.incr_comparisons();
+        op(q, x);
+      }
+    }
+  }
+
+  std::pair<std::optional<std::vector<KV>>, StatTracker>
+  proc_k_probe_output(std::vector<std::pair<KV, Component>> &topk,
+                      const StatTracker &tracker) const {
+    if (topk.size() == 0) {
+      return {std::nullopt, tracker};
+    }
+    // sort output so it is distant to nearest
+    std::sort(
+        topk.begin(), topk.end(),
+        [](const std::pair<KV, Component> &x,
+           const std::pair<KV, Component> &y) { return x.second > y.second; });
+
+    // copy topk into vector of proper return type
+    std::vector<KV> topk_out(topk.size());
+    std::generate(topk_out.begin(), topk_out.end(), [&topk, n = -1]() mutable {
+      ++n;
+      return topk.at(n).first;
+    });
+    return {std::make_optional(topk_out), tracker};
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>

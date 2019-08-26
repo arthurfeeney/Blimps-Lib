@@ -39,21 +39,6 @@ public:
     return sign_hash.dimension() - 1;
   }
 
-  std::vector<mp::cpp_int> get_bit_mask() const {
-    return sign_hash.get_bit_mask();
-  }
-
-  Vect P(const Vect &input) const {
-    // symmetric transform that appends sqrt(1 - ||input||) to input
-    Vect append(sign_hash.dimension());
-    Component norm = input.norm();
-    if (norm - 1 > .001) {
-      throw std::logic_error("SimpleLSH::P, Cannot take sqrt of negative");
-    }
-    append << input, std::sqrt(1 - std::pow(norm, 2)); // append sqrt to input.
-    return append;
-  }
-
   mp::cpp_int operator()(const Vect &input) const { return hash(input); }
 
   mp::cpp_int hash(const Vect &input) const {
@@ -64,13 +49,26 @@ public:
   }
 
   size_t hash_max(const Vect &input, size_t max) const {
-    using mp = boost::multiprecision::cpp_int;
-
-    mp mp_hash = hash(input);
-    mp residue = mp_hash % max;
+    mp::cpp_int mp_hash = hash(input);
+    mp::cpp_int residue = mp_hash % max;
     size_t idx = residue.convert_to<size_t>();
     return idx;
   }
+
+  std::vector<mp::cpp_int> get_bit_mask() const {
+    return sign_hash.get_bit_mask();
+  }
+
+  Vect P(const Vect &input) const {
+    // symmetric transform that appends sqrt(1 - ||input||) to input
+    Vect append(sign_hash.dimension());
+    Component norm = input.norm();
+    if (norm - 1 > .001)
+      throw std::logic_error("SimpleLSH::P, Cannot take sqrt of negative");
+    append << input, std::sqrt(1 - std::pow(norm, 2)); // append sqrt to input.
+    return append;
+  }
+
 }; // namespace nr
 
 } // namespace nr

@@ -5,22 +5,15 @@
 #include <cmath>
 #include <vector>
 
+/*
+ * Quickly compute numbers that have similar bits to their input.
+ * Useful for Multiprobe tables that use sign LSH.
+ */
+
 namespace nr {
 
-// may not be totally necessary, but it shouldn't slow it down either...
-inline size_t low_bits(const size_t bit_lim) {
-  /*
-   * returns a number with bit_lim 1's in binary representation
-   */
-  if (bit_lim == 0) {
-    return 0;
-  }
-  return static_cast<size_t>(std::pow(2, bit_lim) - 1);
-}
-
-inline size_t zero_high_bits(const size_t n, const size_t bit_lim) {
-  return n & low_bits(bit_lim);
-}
+inline size_t low_bits(const size_t bit_lim);
+inline size_t zero_high_bits(const size_t n, const size_t bit_lim);
 
 inline std::vector<size_t> fast_sim_1bit(const size_t n, const size_t bit_lim) {
   /*
@@ -37,8 +30,8 @@ inline std::vector<size_t> fast_sim_1bit(const size_t n, const size_t bit_lim) {
 
 inline std::vector<size_t> fast_sim_2bit(const size_t n, const size_t bit_lim) {
   /*
-   * Given a number, this computes all numbers that differs by at most 2 bits up
-   * to bit_lim
+   * Given a number, this computes all numbers that differs by at most 2 bits
+   * up to bit_lim
    */
   std::vector<size_t> out;
   // reserve memory now so it doesn't reallocate.
@@ -51,6 +44,21 @@ inline std::vector<size_t> fast_sim_2bit(const size_t n, const size_t bit_lim) {
     }
   }
   return out;
+}
+
+// may not be totally necessary, but it shouldn't slow it down either...
+inline size_t low_bits(const size_t bit_lim) {
+  /*
+   * returns a number with bit_lim 1's in binary representation
+   */
+  if (bit_lim == 0) {
+    return 0;
+  }
+  return static_cast<size_t>(std::pow(2, bit_lim) - 1);
+}
+
+inline size_t zero_high_bits(const size_t n, const size_t bit_lim) {
+  return n & low_bits(bit_lim);
 }
 
 } // namespace nr

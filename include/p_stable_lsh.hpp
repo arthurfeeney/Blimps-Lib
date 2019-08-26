@@ -5,7 +5,6 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <cmath>
 #include <random>
-#include <type_traits>
 
 #include "lsh_family.hpp"
 #include "normal_matrix.hpp"
@@ -31,7 +30,7 @@ private:
   Component b;
 
 public:
-  PStableLSH(int64_t dim, Component r) : a(dim), dim(dim), r(r) {
+  PStableLSH(Component r, int64_t dim) : a(dim), dim(dim), r(r) {
     NormalMatrix<Component> nm;
     nm.fill_vector(a);
     // b is selected uniformly from [0, r]
@@ -53,9 +52,11 @@ public:
   }
 
   size_t hash_max(const Vect &input, size_t max) const {
-    using mp = boost::multiprecision::cpp_int;
-    mp mp_hash = hash(input);
-    mp residue = mp_hash % max;
+    mp::cpp_int mp_hash = hash(input);
+    mp::cpp_int residue = mp_hash % max;
+    if (residue < 1) {
+      residue *= -1;
+    }
     size_t idx = residue.convert_to<size_t>();
     return idx;
   }

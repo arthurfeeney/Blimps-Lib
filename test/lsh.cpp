@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "../include/lsh.hpp"
+#include "../include/p_stable_lsh.hpp"
 
 using namespace nr;
 
@@ -132,4 +133,18 @@ TEST_CASE("simple k_probe_approx", "lsh") {
       REQUIRE(good);
     }
   }
+}
+
+TEST_CASE("use p_stable_lsh", "lsh") {
+  LSH_MultiProbe<Eigen::VectorXf, PStableLSH<float>> l(2, 3, 2);
+
+  std::vector<Eigen::VectorXf> data{Eigen::VectorXf(3), Eigen::VectorXf(3),
+                                    Eigen::VectorXf(3)};
+  data.at(0) << .1, .1, .1;
+  data.at(1) << 1, -1, -1;
+  data.at(2) << .1, .15, .1;
+
+  l.fill(data);
+
+  REQUIRE(l.num_tables() == 1);
 }
