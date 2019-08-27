@@ -92,3 +92,17 @@ TEST_CASE("lsh multi simple k probe", "lsh_multi") {
   REQUIRE(out2.first.value().at(1).first == data.at(1));
   REQUIRE(out2.first.value().at(0).first == data.at(2));
 }
+
+TEST_CASE("lsh multi table contains", "lsh_multi") {
+  nr::LSH_MultiProbe_MultiTable<VectorXf> lsh(2, 10, 3, 10);
+  auto data(make_data());
+  lsh.fill(data);
+
+  for (auto &datum : data) {
+    REQUIRE(lsh.contains(datum));
+  }
+
+  Eigen::VectorXf not_in(3);
+  not_in << .9, .9, .9;
+  REQUIRE(!lsh.contains(not_in));
+}

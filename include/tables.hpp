@@ -80,10 +80,6 @@ public:
     }
 
     for (size_t p = 0; p < tables.size(); ++p) {
-      /*for (auto idx : indices.at(p)) {
-        std::cout << idx << ' ';
-      }
-      std::cout << '\n';*/
       tables.at(p).fill(parted_data.at(p), indices.at(p), parts.at(p),
                         normalizers.at(p), is_normalized);
     }
@@ -271,6 +267,16 @@ public:
       return std::make_pair(std::optional<std::vector<KV>>{}, table_tracker);
     }
     return std::make_pair(vects, table_tracker);
+  }
+
+  bool contains(const Vect &q) {
+    /*
+     * Check if any partitions contain q.
+     */
+    auto any_true = [q](bool accum, const Table<Vect> &x) {
+      return accum || x.contains(q);
+    };
+    return std::accumulate(tables.begin(), tables.end(), false, any_true);
   }
 
   void print_stats() {

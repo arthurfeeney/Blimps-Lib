@@ -32,3 +32,27 @@ TEST_CASE("sub tables rankings", "tables") {
   CHECK(rank.at(1).at(0) == 1);
   CHECK(rank.at(1).at(1) == 0);
 }
+
+TEST_CASE("tables contains", "tables") {
+  nr::Tables<Eigen::VectorXf> tables(2, 2, 3, 2);
+
+  std::vector<Eigen::VectorXf> data(10, Eigen::VectorXf(3));
+  data[0] << .3, .3, .3;
+  data[1] << 0, .2, .9;
+  data[2] << -.3, .3, -.78;
+  data[3] << -.28, -.69, -.45;
+  data[4] << .67, -.42, -.66;
+  data[5] << .45, -.1, .345;
+  data[6] << .2, .21, -.363;
+  data[7] << -.3, -.3, -.324;
+  data[8] << .1, -.78, -.3;
+  data[9] << .5, .9, -.67;
+
+  tables.fill(data, false);
+
+  REQUIRE(tables.size() == 2);
+
+  for (auto &datum : data) {
+    REQUIRE(tables.contains(datum));
+  }
+}

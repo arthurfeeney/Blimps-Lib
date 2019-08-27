@@ -12,11 +12,12 @@ In the bind directory, there are some minimal python bindings that were made wit
 
 It also provides a simple C++ implementation of and Python bindings for vanilla-LSH.  
 
-The tables all expose these functions (for inner products and distance)
- * probe(query, adj) finds the item resulting in the largest inner product in the 'adj' highest ranked buckets
- * k_probe(k, query, adj) finds the k items resulting in the largest inner products in the 'adj' highest ranked buckets
- * probe_approx(query, c, adj) finds the first item with an inner product greater than c
- * k_probe_approx(k, query, c, adj) finds the first k items with inner products greater than c
+The tables all expose these functions for inner products and distance, where adj is the number of buckets to probe. 
+ * probe(query, adj)
+ * k_probe(k, query, adj)
+ * probe_approx(query, c, adj)
+ * k_probe_approx(k, query, c, adj)
+ * contains(query)
 
 ## Usage
 

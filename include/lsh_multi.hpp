@@ -31,11 +31,12 @@ namespace mp = boost::multiprecision;
 namespace nr {
 
 template <typename Vect, typename Hash = SignLSH<typename Vect::value_type>>
-class LSH_MultiProbe_MultiTable { // }: public MultiProbe<Vect> {
+class LSH_MultiProbe_MultiTable : public MultiProbe<Vect> {
 private:
   using Component = typename Vect::value_type;
   using KV = std::pair<Vect, int64_t>;
-  using MultiTable = std::vector<std::unordered_map<size_t, std::list<KV>>>;
+  using Table = std::unordered_map<size_t, std::list<KV>>;
+  using MultiTable = std::vector<Table>;
 
   MultiTable tables;
   int64_t dim;
@@ -260,7 +261,24 @@ public:
     return {topk_output, tracker};
   }
 
-  void print_stats() const {}
+  bool contains(const Vect &q) {
+    /*
+     * Check if q is contained in the tables.
+     * Only need to check one because all tables contain all vectors
+     */
+    const Table &t = tables.at(0);
+    const Hash &h = hash_functions.at(0);
+    const size_t idx = h.hash_max(q, num_buckets);
+    auto search = t.find(idx);
+    if (search == t.end())
+      return false;
+    const std::list<KV> &l = (*search).second;
+    auto vect_equality = [q](const KV &x) { return x.first.isApprox(q); };
+    auto q_iter = std::find_if(l.begin(), l.end(), vect_equality);
+    return q_iter != l.end();
+  }
+
+  void print_stats() {}
 
   MultiTable data() { return tables; }
 

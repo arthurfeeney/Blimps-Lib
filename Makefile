@@ -1,5 +1,5 @@
 
-FLAGS = -std=c++17 -Wall -pedantic -O3
+FLAGS = -std=c++17 -Wall -Werror -pedantic -O3
 EIGEN = -Iexternal/eigen/
 PLOT = -Iexternal/matplotlib-cpp -I/usr/include/python2.7 -lpython2.7
 PYBIND11 = -Iexternal/pybind11/

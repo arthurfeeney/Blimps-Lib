@@ -139,6 +139,16 @@ public:
     return std::make_pair(vects, tracker);
   }
 
+  bool contains(const Vect &q) {
+    /*
+     * Check if q is contained in the tables.
+     * Only need to check one because all tables contain all vectors
+     * More complicated than LSH contains: must use each partitions' normalizers
+     * when searching. Still only need to search one table.
+     */
+    return probe_tables.at(0).contains(q);
+  }
+
   void k_probe_tables(int64_t k, const Vect &q, size_t adj,
                       std::vector<std::pair<KV, Component>> &topk) {
     /*

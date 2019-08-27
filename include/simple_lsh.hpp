@@ -49,10 +49,8 @@ public:
   }
 
   size_t hash_max(const Vect &input, size_t max) const {
-    mp::cpp_int mp_hash = hash(input);
-    mp::cpp_int residue = mp_hash % max;
-    size_t idx = residue.convert_to<size_t>();
-    return idx;
+    Vect simple = P(input);
+    return sign_hash.hash_max(simple, max);
   }
 
   std::vector<mp::cpp_int> get_bit_mask() const {
@@ -63,7 +61,7 @@ public:
     // symmetric transform that appends sqrt(1 - ||input||) to input
     Vect append(sign_hash.dimension());
     Component norm = input.norm();
-    if (norm - 1 > .001)
+    if (norm - 1 >= 1e-4)
       throw std::logic_error("SimpleLSH::P, Cannot take sqrt of negative");
     append << input, std::sqrt(1 - std::pow(norm, 2)); // append sqrt to input.
     return append;

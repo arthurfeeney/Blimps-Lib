@@ -53,8 +53,7 @@ public:
         table.at(bucket_idx).push_back(to_insert);
       } else {
         // this UN-normalizes before inserting.
-        KV fix_to_insert =
-            std::make_pair(to_insert.first * Up, to_insert.second);
+        KV fix_to_insert = {to_insert.first * Up, to_insert.second};
         table.at(bucket_idx).push_back(fix_to_insert);
       }
     }
@@ -135,18 +134,12 @@ public:
      * sort of similar inputs result in an output closer to zero.
      */
 
-    // dont look in an empty bucket.
-
     constexpr double PI = 3.141592653589;
-    constexpr double e = 1e-3;
-    double l = static_cast<double>(
-        stats::same_bits(idx, other, std::floor(std::log2(num_buckets)) + 1));
-
-    // if no partitions, similarity is just l
-    // return l;
-
+    constexpr double eps = 1e-3;
+    const size_t bit_lim = std::floor(std::log2(num_buckets)) + 1;
+    double l = static_cast<double>(stats::same_bits(idx, other, bit_lim));
     double L = static_cast<double>(hash.bit_count());
-    return normalizer * std::cos(PI * (1.0 - e) * (1.0 - (l / L)));
+    return normalizer * std::cos(PI * (1.0 - eps) * (1.0 - (l / L)));
   }
 
   std::vector<int64_t> probe_ranking(int64_t idx, int64_t adj) const {
@@ -226,6 +219,22 @@ public:
       return std::make_pair(std::nullopt, partition_tracker);
     }
     return std::make_pair(successful, partition_tracker);
+  }
+
+  bool contains(const Vect &q) const {
+    /*
+     * Checks if this partition contains q.
+     */
+    Vect norm_q = q / normalizer;
+    if (norm_q.norm() > 1)
+      return false;
+    size_t idx = hash.hash_max(norm_q, num_buckets);
+    const std::list<KV> &l = table.at(idx);
+    auto vect_equality = [q](const KV &x) {
+      return (x.first - q).norm() < 1e-3;
+    };
+    auto q_iter = std::find_if(l.begin(), l.end(), vect_equality);
+    return q_iter != l.end();
   }
 
   void print_stats() {

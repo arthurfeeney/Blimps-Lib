@@ -256,6 +256,18 @@ public:
     return {std::make_optional(topk), tracker};
   }
 
+  bool contains(const Vect &q) {
+    /*
+     * Check if q is contained in the tables.
+     * Only need to check one because all tables contain all vectors
+     */
+    const size_t idx = hash_function.hash_max(q, table.size());
+    const std::list<KV> &l = table.at(idx);
+    auto vect_equality = [q](const KV &x) { return x.first.isApprox(q); };
+    auto q_iter = std::find_if(l.begin(), l.end(), vect_equality);
+    return q_iter != l.end();
+  }
+
   void print_stats() {}
 
   std::vector<std::list<KV>> data() { return table; }

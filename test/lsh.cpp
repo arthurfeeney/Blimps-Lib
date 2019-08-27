@@ -148,3 +148,23 @@ TEST_CASE("use p_stable_lsh", "lsh") {
 
   REQUIRE(l.num_tables() == 1);
 }
+
+TEST_CASE("lsh table contains", "lsh") {
+  LSH_MultiProbe<Eigen::VectorXf, PStableLSH<float>> l(2, 3, 2);
+
+  std::vector<Eigen::VectorXf> data{Eigen::VectorXf(3), Eigen::VectorXf(3),
+                                    Eigen::VectorXf(3)};
+  data.at(0) << .1, .1, .1;
+  data.at(1) << 1, -1, -1;
+  data.at(2) << .1, .15, .1;
+
+  l.fill(data);
+
+  REQUIRE(l.contains(data.at(0)));
+  REQUIRE(l.contains(data.at(1)));
+  REQUIRE(l.contains(data.at(2)));
+
+  Eigen::VectorXf not_in(3);
+  not_in << .9, .9, .9;
+  REQUIRE(!l.contains(not_in));
+}
