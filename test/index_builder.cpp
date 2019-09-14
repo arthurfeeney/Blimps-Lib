@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <vector>
 
+nr::IndexBuilder ib;
+
 TEST_CASE("finds obvious max norm", "index_builder") {
   std::vector<Eigen::VectorXf> data(3, Eigen::VectorXf(3));
   data[0] << 1, 1, 1;
@@ -17,7 +19,7 @@ TEST_CASE("finds obvious max norm", "index_builder") {
   std::vector<int> partition(3);
   std::iota(partition.begin(), partition.end(), 0);
 
-  float norm = nr::max_norm(data, partition);
+  float norm = ib.max_norm(data, partition);
   REQUIRE(norm == data[0].norm());
 }
 
@@ -33,8 +35,8 @@ TEST_CASE("find max norm in subset", "index_buidler") {
   std::vector<int> partition1{1, 2, 4};
   std::vector<int> partition2{0, 3, 5};
 
-  REQUIRE(nr::max_norm(data, partition1) == data[4].norm());
-  REQUIRE(nr::max_norm(data, partition2) == data[0].norm());
+  REQUIRE(ib.max_norm(data, partition1) == data[4].norm());
+  REQUIRE(ib.max_norm(data, partition2) == data[0].norm());
 }
 
 TEST_CASE("Properly rank 3 vectors by norm", "index_builder") {
@@ -43,7 +45,7 @@ TEST_CASE("Properly rank 3 vectors by norm", "index_builder") {
   data[1] << .1, .1, .1;
   data[2] << -.3, -.3, .3;
 
-  std::vector<int64_t> ranking = nr::rank_by_norm(data);
+  std::vector<int64_t> ranking = ib.rank_by_norm(data);
 
   REQUIRE(ranking == std::vector<int64_t>{1, 2, 0});
 }
@@ -61,7 +63,7 @@ TEST_CASE("rank more vectors by norm", " index_builder") {
   data[8] << -1, -1, 1;   // 9
   data[9] << .1, 0, 0;    // 0
 
-  std::vector<int64_t> ranking = nr::rank_by_norm(data);
+  std::vector<int64_t> ranking = ib.rank_by_norm(data);
 
   std::vector<int64_t> expected{9, 6, 7, 5, 4, 3, 2, 1, 0, 8};
 
@@ -73,7 +75,7 @@ TEST_CASE("Partition two vectors", "index_builder") {
   data[0] << 1, 1, 1;
   data[1] << 2, 2, 2;
 
-  std::vector<std::vector<int64_t>> p = nr::partitioner(data, 2);
+  std::vector<std::vector<int64_t>> p = ib.partitioner(data, 2);
 
   CHECK(p.size() == 2);
   CHECK(p.at(0).size() == 1);
@@ -95,7 +97,7 @@ TEST_CASE("Partition 10 vectors into 2 partitions", "index_builder") {
   data[8] << -1, -1, 1;   // 9
   data[9] << .1, 0, 0;    // 0
 
-  auto parts = nr::partitioner(data, 2);
+  auto parts = ib.partitioner(data, 2);
 
   std::vector<std::vector<int64_t>> expected{{9, 6, 7, 5, 4}, {3, 2, 1, 0, 8}};
 
@@ -115,12 +117,11 @@ TEST_CASE("Partition 10 vectors into 3 partitions", "index_builder") {
   data[8] << -1, -1, 1;   // 9
   data[9] << .1, 0, 0;    // 0
 
-  auto parts = nr::partitioner(data, 3);
+  auto parts = ib.partitioner(data, 3);
 
   // overflow should go in the last partition.
   std::vector<std::vector<int64_t>> expected{
-      {9, 6, 7}, {5, 4, 3}, {2, 1, 0, 8}
-  };
+      {9, 6, 7}, {5, 4, 3}, {2, 1, 0, 8}};
 
   REQUIRE(parts == expected);
 }
@@ -130,9 +131,9 @@ TEST_CASE("Normalize two partitions", "index_builder") {
   data[0] << 1, 1, 1;
   data[1] << 2, 2, 2;
 
-  std::vector<std::vector<int64_t>> p = nr::partitioner(data, 2);
+  std::vector<std::vector<int64_t>> p = ib.partitioner(data, 2);
 
-  auto n_U = nr::normalizer(data, p);
+  auto n_U = ib.normalizer(data, p);
 
   std::vector<std::vector<Eigen::VectorXf>> norm = n_U.first;
   std::vector<float> U = n_U.second;
@@ -157,9 +158,9 @@ TEST_CASE("normalize ten vectors in 3 partitions", "index_builder") {
   data[8] << -1, -1, 1;   // 9
   data[9] << .1, 0, 0;    // 0
 
-  auto parts = nr::partitioner(data, 3);
+  auto parts = ib.partitioner(data, 3);
 
-  auto n_U = nr::normalizer(data, parts);
+  auto n_U = ib.normalizer(data, parts);
   auto norm = n_U.first;
   auto U = n_U.second;
 
@@ -175,9 +176,9 @@ TEST_CASE("hash two single-element partitions", "index_builder") {
   data[0] << 1, 1, 1;
   data[1] << -2, -2, -2;
 
-  std::vector<std::vector<int64_t>> p = nr::partitioner(data, 2);
+  std::vector<std::vector<int64_t>> p = ib.partitioner(data, 2);
 
-  auto n_U = nr::normalizer(data, p);
+  auto n_U = ib.normalizer(data, p);
 
   std::vector<std::vector<Eigen::VectorXf>> norm = n_U.first;
   std::vector<float> U = n_U.second;
@@ -194,7 +195,7 @@ TEST_CASE("hash two single-element partitions", "index_builder") {
   REQUIRE(h2 >= 0);
 
   std::vector<std::vector<int64_t>> idx =
-      nr::simple_LSH_partitions(norm, hash, num_buckets);
+      ib.simple_LSH_partitions(norm, hash, num_buckets);
 
   REQUIRE(idx.at(0).at(0) == h1);
   REQUIRE(idx.at(1).at(0) == h2);
@@ -213,9 +214,9 @@ TEST_CASE("hash 3 ten element partitions", "index_builder") {
   data[8] << -1, -1, 1;   // 9
   data[9] << .1, 0, 0;    // 0
 
-  auto parts = nr::partitioner(data, 3);
+  auto parts = ib.partitioner(data, 3);
 
-  auto n_U = nr::normalizer(data, parts);
+  auto n_U = ib.normalizer(data, parts);
   auto norm = n_U.first;
   auto U = n_U.second;
 
@@ -231,7 +232,7 @@ TEST_CASE("hash 3 ten element partitions", "index_builder") {
   REQUIRE(hash(norm.at(2).at(3)) >= 0);
 
   std::vector<std::vector<int64_t>> idx =
-      nr::simple_LSH_partitions(norm, hash, 64);
+      ib.simple_LSH_partitions(norm, hash, 64);
   for (size_t i = 0; i < 3; ++i) {
     for (size_t j = 0; j < 3; ++j) {
       REQUIRE(hash(norm.at(i).at(j)) == idx.at(i).at(j));

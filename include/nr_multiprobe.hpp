@@ -230,17 +230,6 @@ public:
         });
   }
 
-  KV find_max_inner(const Vect &q) {
-    /*
-     * Finds the true maximum inner product in the dataset, not an
-     * approximate one.
-     * This exists in case the user does not have access to the
-     * original dataset for some reason.
-     * just looks through a single probe_tyable since it will contain everything
-     */
-    return probe_tables.at(0).MIPS(q).second;
-  }
-
   static typename std::vector<KV>::const_iterator
   find_value(const std::vector<KV> &vects, int64_t value) {
     for (auto iter = vects.begin(); iter != vects.end(); ++iter) {

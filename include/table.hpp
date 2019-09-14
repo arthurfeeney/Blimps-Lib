@@ -31,8 +31,7 @@ private:
   std::vector<std::list<KV>> table;
   SimpleLSH<Component> hash;
   typename Vect::value_type normalizer; // this partitions Up normalizer
-
-  std::unordered_map<int64_t, std::vector<int64_t>> similar;
+  bool data_is_normalized = false;
 
 public:
   Table(SimpleLSH<Component> hash, size_t num_buckets)
@@ -44,7 +43,7 @@ public:
             const std::vector<int64_t> &ids, const Component Up,
             bool is_normalized) {
     for (size_t i = 0; i < indices.size(); ++i) {
-      KV to_insert = std::make_pair(normalized_partition.at(i), ids.at(i));
+      KV to_insert = {normalized_partition.at(i), ids.at(i)};
 
       // modulo is done in the index builder. Don't need to repeat it.
       size_t bucket_idx = indices.at(i);
@@ -58,6 +57,7 @@ public:
       }
     }
     normalizer = Up;
+    data_is_normalized = is_normalized;
   }
 
   int64_t first_non_empty_bucket() const {
@@ -90,7 +90,7 @@ public:
         }
       }
     }
-    return std::make_pair(true, max);
+    return {true, max};
   }
 
   std::pair<std::optional<KV>, StatTracker> probe(const Vect &q,
@@ -109,22 +109,21 @@ public:
 
     std::vector<int64_t> rank = probe_ranking(idx, n_to_probe);
     // initialize to impossible values
-    KV max = std::make_pair(Vect(1), -1);
-    double big_dot = std::numeric_limits<Component>::min();
+    KV max = {Vect(1), -1};
+    Component big_dot = std::numeric_limits<Component>::min();
     for (int64_t r = 0; r < n_to_probe; ++r) {
       for (const auto &current : table.at(rank.at(r))) {
-        double dot = q.dot(current.first);
         partition_tracker.incr_comparisons();
+        Component dot = q.dot(current.first);
         if (dot > big_dot) {
           big_dot = dot;
           max = current;
         }
       }
     }
-    if (max.second < 0) { // no large inner products were found.
-      return std::make_pair(std::nullopt, partition_tracker);
-    }
-    return std::make_pair(max, partition_tracker);
+    if (max.second < 0) // no large inner products were found.
+      return {std::nullopt, partition_tracker};
+    return {max, partition_tracker};
   }
 
   inline double sim(size_t idx, size_t other) const {
@@ -133,12 +132,11 @@ public:
      * Disimilar inputs result in NEGATIVE output.
      * sort of similar inputs result in an output closer to zero.
      */
-
     constexpr double PI = 3.141592653589;
     constexpr double eps = 1e-3;
     const size_t bit_lim = std::floor(std::log2(num_buckets)) + 1;
-    double l = static_cast<double>(stats::same_bits(idx, other, bit_lim));
-    double L = static_cast<double>(hash.bit_count());
+    const double l = static_cast<double>(stats::same_bits(idx, other, bit_lim));
+    const double L = static_cast<double>(hash.bit_count());
     return normalizer * std::cos(PI * (1.0 - eps) * (1.0 - (l / L)));
   }
 
@@ -157,91 +155,72 @@ public:
         });
   }
 
-  std::vector<KV> topk_in_bucket(int64_t k, int64_t bucket,
-                                 const Vect &q) const {
-    // return the kv-pairs that result in the largest inner products with q.
-    if (table.at(bucket).size() == 0) {
-      return {};
-    }
-    std::vector<typename Vect::value_type> inner(0);
-    for (auto &elem : table.at(bucket)) {
-      inner.push_back(elem.first.dot(q));
-    }
-
-    auto p = stats::topk(k, inner);
-    auto indices = p.second;
-
-    std::vector<KV> ret(indices.size());
-    for (size_t i = 0; i < indices.size(); ++i) {
-      auto bucket_iter = table.at(bucket).begin();
-      std::advance(bucket_iter, indices.at(i));
-      ret.at(i) = *bucket_iter;
-    }
-    return ret;
-  }
-
   std::pair<std::optional<KV>, StatTracker>
   look_in(int64_t bucket, const Vect &q, double c) const {
-    // returns first vector x of this bucket with dot(q, x) > c
+    /*
+     * returns the first vector x (if any) where q.dot(x) > c
+     */
     StatTracker partition_tracker;
-
     partition_tracker.incr_buckets_probed();
-
-    for (auto it = table.at(bucket).begin(); it != table.at(bucket).end();
-         ++it) {
+    for (auto &x : table.at(bucket)) {
       partition_tracker.incr_comparisons();
-      if (q.dot((*it).first) > c) {
-        return std::make_pair(*it, partition_tracker);
-      }
+      if (q.dot(x.first) > c)
+        return {x, partition_tracker};
     }
-    return std::make_pair(std::nullopt, partition_tracker);
+    return {std::nullopt, partition_tracker};
   }
 
   std::pair<std::optional<std::vector<KV>>, StatTracker>
   look_in_until(int64_t bucket, const Vect &q, double c, size_t limit) const {
-    // searches this bucket until it finds <limit> vectors x where dot(q, x) > c
-    // or it reaches the end of the bucket. It returns success as long as at
-    // least one such x is found.
+    /*
+     * searches this bucket until it finds <limit> vectors x where dot(q, x) > c
+     * or it reaches the end of the bucket. It returns success as long as at
+     * least one such x is found. Otherwise, it returns nullopt.
+     */
     StatTracker partition_tracker;
     std::vector<KV> successful(0);
-    for (const auto &x : table[bucket]) {
+    for (const auto &x : table.at(bucket)) {
       partition_tracker.incr_comparisons();
-      if (q.dot(x.first) > c) {
+      if (q.dot(x.first) > c)
         successful.push_back(x);
-      }
-      if (successful.size() == limit) {
-        // if limit vectors were found, the search can stop early
-        return std::make_pair(successful, partition_tracker);
-      }
+      if (successful.size() == limit) // return if limit vectors found
+        return {successful, partition_tracker};
     }
-    // return success if at least one vector was found. False otherwise
-    if (successful.size() == 0) {
-      return std::make_pair(std::nullopt, partition_tracker);
-    }
-    return std::make_pair(successful, partition_tracker);
+    if (successful.size() == 0)
+      return {std::nullopt, partition_tracker};
+    return {successful, partition_tracker};
   }
 
-  bool contains(const Vect &q) const {
+  bool contains(Vect q) const {
     /*
      * Checks if this partition contains q.
+     * If the data is normalized, it searches for the normalized vector
+     * Otherwise, it searches for the unnormalized input.
      */
     Vect norm_q = q / normalizer;
-    if (norm_q.norm() > 1)
+    if (norm_q.norm() > 1) // norm_q is longer than longest in partition
       return false;
-    size_t idx = hash.hash_max(norm_q, num_buckets);
-    const std::list<KV> &l = table.at(idx);
-    auto vect_equality = [q](const KV &x) {
-      return (x.first - q).norm() < 1e-3;
-    };
-    auto q_iter = std::find_if(l.begin(), l.end(), vect_equality);
-    return q_iter != l.end();
+    const size_t idx = hash.hash_max(norm_q, num_buckets);
+    const std::list<KV> &bucket = table.at(idx);
+    q /= query_scalar();
+    auto vect_equality = [q](const KV &x) { return x.first.isApprox(q); };
+    auto q_iter = std::find_if(bucket.begin(), bucket.end(), vect_equality);
+    return q_iter != bucket.end();
+  }
+
+  Component query_scalar() const {
+    /*
+     * When calling contains on a query, it must be scaled depending on how
+     * the data in the table is stored. If it is stored as it was input, the
+     * scalar is one. Otherwise, it must use the tables scalar.
+     */
+    return data_is_normalized ? normalizer : 1;
   }
 
   void print_stats() {
     std::vector<size_t> bucket_sizes(table.size(), 0);
     size_t num_empty_buckets = 0;
 
-#pragma omp parallel for
     for (size_t i = 0; i < bucket_sizes.size(); ++i) {
       bucket_sizes.at(i) = table.at(i).size();
       if (bucket_sizes.at(i) == 0) {

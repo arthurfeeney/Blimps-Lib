@@ -1,5 +1,5 @@
 
-FLAGS = -std=c++17 -Wall -Werror -pedantic -O3
+FLAGS = -std=c++17 -Wall -pedantic -O3
 EIGEN = -Iexternal/eigen/
 PLOT = -Iexternal/matplotlib-cpp -I/usr/include/python2.7 -lpython2.7
 PYBIND11 = -Iexternal/pybind11/
@@ -21,8 +21,8 @@ TEST = -Iexternal/Catch2/
 CASES = test/stats.cpp test/stat_tracker.cpp test/simple_lsh.cpp test/table.cpp test/index_builder.cpp test/tables.cpp test/nr.cpp test/lsh.cpp test/p_stable_lsh.cpp test/lsh_multi.cpp test/fast_sim.cpp
 
 catch:
-	g++ -std=c++17 $(TEST) $(EIGEN) -c test/main.cpp
-	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test main.o $(CASES) && ./test/test --success
+	g++ -std=c++17 $(TEST) $(EIGEN) -o test/main.o -c test/main.cpp
+	g++ -std=c++17 $(TEST) $(EIGEN) -o test/test test/main.o $(CASES) && ./test/test --success
 
 k_probe_approx:
 	g++ $(FLAGS) $(OMP) $(EIGEN) $(PLOT) -o synthetic/k_probe_approx.o synthetic/synth_k_probe_approx.cpp;
