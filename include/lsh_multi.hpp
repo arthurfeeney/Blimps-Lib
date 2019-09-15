@@ -51,7 +51,7 @@ private:
      */
     const static size_t bit_lim = std::floor(std::log2(num_buckets)) + 1;
     const size_t idx = hash_functions.at(table).hash_max(q, num_buckets);
-    return fast_sim_1bit(idx, bit_lim);
+    return fast_sim_2bit(idx, bit_lim);
   }
 
 public:
@@ -193,6 +193,23 @@ public:
     return k_probe_approx_output(k, topk, tracker);
   }
 
+  bool contains(const Vect &q) {
+    /*
+     * Check if q is contained in the tables.
+     * Only need to check one because all tables contain all vectors
+     */
+    const Table &t = tables.at(0);
+    const Hash &h = hash_functions.at(0);
+    const size_t idx = h.hash_max(q, num_buckets);
+    auto search = t.find(idx);
+    if (search == t.end())
+      return false;
+    const std::list<KV> &l = (*search).second;
+    auto vect_equality = [q](const KV &x) { return x.first.isApprox(q); };
+    auto q_iter = std::find_if(l.begin(), l.end(), vect_equality);
+    return q_iter != l.end();
+  }
+
   Component k_probe_step(const int64_t k, const KV &x, const Component dist,
                          std::vector<std::pair<KV, Component>> &topk,
                          const Component largest_dist) {
@@ -259,23 +276,6 @@ public:
       topk_output.at(i) = topk.at(i).first;
     }
     return {topk_output, tracker};
-  }
-
-  bool contains(const Vect &q) {
-    /*
-     * Check if q is contained in the tables.
-     * Only need to check one because all tables contain all vectors
-     */
-    const Table &t = tables.at(0);
-    const Hash &h = hash_functions.at(0);
-    const size_t idx = h.hash_max(q, num_buckets);
-    auto search = t.find(idx);
-    if (search == t.end())
-      return false;
-    const std::list<KV> &l = (*search).second;
-    auto vect_equality = [q](const KV &x) { return x.first.isApprox(q); };
-    auto q_iter = std::find_if(l.begin(), l.end(), vect_equality);
-    return q_iter != l.end();
   }
 
   void print_stats() {}

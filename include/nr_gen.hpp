@@ -21,7 +21,7 @@ std::pair<int64_t, int64_t> sizes_from_probs(const size_t num_to_insert,
   const int64_t bits = std::round(std::log2(n) / std::log2(1.0 / p2));
   const double row = std::log2(p1) / std::log2(p2);
   const int64_t num_tables = std::round(std::pow(n, row));
-  return std::make_pair(bits, num_tables);
+  return {bits, num_tables};
 }
 
 template <typename Vect>

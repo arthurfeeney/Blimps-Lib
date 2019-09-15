@@ -7,6 +7,7 @@
 
 #include "../include/lsh.hpp"
 #include "../include/lsh_multi.hpp"
+#include "../include/nr_gen.hpp"
 #include "../include/nr_multiprobe.hpp"
 #include "../include/p_stable_lsh.hpp"
 #include "../include/sign_lsh.hpp"
@@ -21,6 +22,7 @@ PYBIND11_MODULE(nr_binding, m) {
   // hello
 
   m.def("same_bits", &stats::same_bits);
+  m.def("sizes_from_probs", &nr::sizes_from_probs);
 
   // Binding for SimpleLSH is primarly for testing it and plotting.
   // hash_max takes an extra argument to

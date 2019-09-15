@@ -27,6 +27,10 @@ def same_bits(n1, n2, bits):
     return nr_binding.same_bits(n1, n2, bits)
 
 
+def sizes_from_probs(n_to_insert, p1, p2):
+    return nr_binding.sizes_from_probs(n_to_insert, p1, p2)
+
+
 def lsh_table(num_tables, bits, dim, num_buckets, dtype=float32):
     if any([dtype is f for f in _valid_float32]):
         if num_tables == 1:
